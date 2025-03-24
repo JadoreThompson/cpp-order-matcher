@@ -27,9 +27,16 @@ public:
     const float entry_price;
     const Tag tag;
 
-    OrderPayload(int quantity_, float entry_price_, Tag tag_);
+    OrderPayload(int quantity_, float entry_price_);
     void set_status(Status status_);
     Status &get_status();
 };
 
+class Order
+{
+public:
+    const Tag tag;
+    OrderPayload &payload;
+    Order(OrderPayload &payload_, const Tag tag_);
+};
 #endif
