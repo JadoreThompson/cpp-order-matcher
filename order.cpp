@@ -1,7 +1,7 @@
 #include "order.h"
 #include <string>
 
-OrderPayload::OrderPayload(int quantity_, float entry_price_) : quantity(quantity_), entry_price(entry_price_), tag(tag_), status(PENDING) {};
+OrderPayload::OrderPayload(int quantity_, float entry_price_) : quantity(quantity_), entry_price(entry_price_), status(PENDING) {};
 
 void OrderPayload::set_status(Status status_)
 {
@@ -17,3 +17,5 @@ Status &OrderPayload::get_status()
 }
 
 Order::Order(OrderPayload &payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
+
+Position::Position(Order &entry_order_) : entry_order(entry_order_) {};

@@ -25,7 +25,6 @@ private:
 public:
     int quantity;
     const float entry_price;
-    const Tag tag;
 
     OrderPayload(int quantity_, float entry_price_);
     void set_status(Status status_);
@@ -38,5 +37,14 @@ public:
     const Tag tag;
     OrderPayload &payload;
     Order(OrderPayload &payload_, const Tag tag_);
+};
+
+class Position
+{
+public:
+    Order &entry_order;
+    Order *stop_loss_order;
+    Order *take_profit_order;
+    Position(Order &entry_order_);
 };
 #endif
