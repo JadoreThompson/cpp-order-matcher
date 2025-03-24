@@ -1,5 +1,12 @@
 #ifndef _ORDER_
 #define _ORDER_
+#include <optional>
+
+enum Side
+{
+    BID,
+    ASK
+};
 
 enum Status
 {
@@ -23,10 +30,22 @@ private:
     Status status;
 
 public:
-    int quantity;
-    const float entry_price;
+    const int id;
+    const Side side;
+    const int quantity;
+    int standing_quantity;
+    float entry_price;
+    float *filled_price;
+    float *stop_loss_price;
+    float *take_profit_price;
 
-    OrderPayload(int quantity_, float entry_price_);
+    OrderPayload(
+        const int id_,
+        const Side side_,
+        const int quantity_,
+        float entry_price_,
+        float *stop_loss_price_ = nullptr,
+        float *take_profit_price_ = nullptr);
     void set_status(Status status_);
     Status &get_status();
 };
