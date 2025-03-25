@@ -35,7 +35,7 @@ struct OrderPayload
 {
 private:
     Status status;
-    float filled_price;
+    float filled_price; // Make this a pointer var?
     bool filled_price_set;
 
 public:
@@ -71,10 +71,7 @@ public:
     const Tag tag;
     OrderPayload &payload;
     Order(OrderPayload &payload_, const Tag tag_);
-    bool operator==(const Order &other) const
-    {
-        return this->payload.id == other.payload.id;
-    }
+    bool operator==(const Order &other) const;
 };
 
 class Position
