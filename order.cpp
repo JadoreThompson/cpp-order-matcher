@@ -19,7 +19,9 @@ OrderPayload::OrderPayload(
       entry_price(entry_price_),
       stop_loss_price(stop_loss_price_),
       take_profit_price(take_profit_price_),
-      status(PENDING) {};
+      status(PENDING),
+      filled_price_set(false)
+      {};
 
 void OrderPayload::set_status(Status status_)
 {
@@ -41,10 +43,11 @@ void OrderPayload::set_filled_price(float price) {
     }
 
     this->filled_price = price;
+    this->filled_price_set = true;
 }
 
 float OrderPayload::get_filled_price() {
-    if (this->filled_price_set) {
+    if (!this->filled_price_set) {
         throw std::string("Filled price not set");
     }
 
@@ -52,6 +55,10 @@ float OrderPayload::get_filled_price() {
 }
 
 Order::Order(OrderPayload &payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
+
+bool Order::operator==(const Order &other) const {
+    return this->payload.id == other.payload.id;
+}
 
 Position::Position(Order &entry_order_)
     : entry_order(entry_order_),
