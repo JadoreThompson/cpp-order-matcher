@@ -5,11 +5,10 @@ template <class T>
 void Queue<T>::push(T *value)
 {
     this->queue.push_back(value);
-
-    for (auto &getter : this->getters)
-    {
-        (*getter).set_value(true);
-        this->getters.clear();
+    
+    if (this->getter) {
+        (*this->getter).set_value(true);
+        this->getter = nullptr;
     }
 }
 
@@ -24,10 +23,10 @@ T &Queue<T>::get_nowait()
 template <class T>
 T &Queue<T>::get()
 {
-    if (queue.empty())
+    if (this->queue.empty())
     {
         std::promise<bool> prom;
-        this->getters.push_back(&prom);
+        this->getter = &prom;
         prom.get_future().get();
     }
 
