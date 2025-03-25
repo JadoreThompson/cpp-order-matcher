@@ -7,7 +7,7 @@
 
 OrderBook::OrderBook(const std::string instrument_) : instrument(instrument_) {};
 
-std::map<float, std::list<Order>> &OrderBook::get_opposite_book(const Order &order)  const 
+std::map<float, std::list<Order>> &OrderBook::get_book(const Order &order) const
 {
     if (order.tag == ENTRY)
     {
@@ -17,10 +17,14 @@ std::map<float, std::list<Order>> &OrderBook::get_opposite_book(const Order &ord
     return const_cast<std::map<float, std::list<Order>> &>((order.payload.side == ASK) ? this->asks : this->bids);
 }
 
-Position &OrderBook::get_position(const int id) {
-    try {
+Position &OrderBook::get_position(const int id)
+{
+    try
+    {
         return this->tracker.at(id);
-    } catch(const std::out_of_range &e) {
+    }
+    catch (const std::out_of_range &e)
+    {
         throw std::string("Position with id " + std::to_string(id) + " doesn't exist");
     }
 }
@@ -99,7 +103,7 @@ void OrderBook::rtrack(Order &order)
 
 void OrderBook::remove_from_level(Order &order)
 {
-    auto &book = get_opposite_book(order);
+    auto &book = get_book(order);
 
     if (order.tag == ENTRY)
     {
@@ -113,7 +117,7 @@ void OrderBook::remove_from_level(Order &order)
 
 void OrderBook::push_tp_sl(Order &order)
 {
-    std::map<float, std::list<Order>> &book = (order.payload.side == ASK) ? this->bids : this->asks;
+    auto &book = get_book(order);
     const float *price = (order.tag == TAKE_PROFIT) ? order.payload.take_profit_price : order.payload.stop_loss_price;
     track(order);
     book[*price].push_back(order);
@@ -129,9 +133,7 @@ void OrderBook::push_order(Order &order)
     std::map<float, std::list<Order>> &book = (order.payload.side == ASK) ? this->asks : this->bids;
     book[order.payload.entry_price].push_back(order);
     track(order);
-    // this->tracker.emplace(order.payload.id, Position(order));
 }
-
 
 std::pair<int, int> OrderBook::size()
 {

@@ -53,7 +53,6 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
             {
                 place_market_order(payload);
             }
-
         }
         catch (const std::string &e)
         {
@@ -70,6 +69,7 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
                 << std::endl;
 
             std::this_thread::sleep_for(std::chrono::seconds(5));
+            counter = 0;
         }
     }
 }
@@ -127,7 +127,7 @@ void FuturesEngine::place_market_order(OrderPayload &payload)
 
 MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
 {
-    std::map<float, std::list<Order>> &book = orderbook.get_opposite_book(order);
+    std::map<float, std::list<Order>> &book = orderbook.get_book(order);
     float price;
 
     if (order.tag == ENTRY)
@@ -169,7 +169,7 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
         }
     }
 
-    handle_filled_orders(filled, orderbook);
+    handle_filled_orders(filled, orderbook, price);
     handle_touched_orders(touched, orderbook);
 
     if (order.payload.standing_quantity == 0)
@@ -189,23 +189,24 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
     return result;
 }
 
-void FuturesEngine::handle_filled_orders(std::list<Order> &orders, OrderBook &orderbook)
+void FuturesEngine::handle_filled_orders(std::list<Order> &orders, OrderBook &orderbook, const float price)
 {
     for (auto &order : orders)
     {
         if (order.tag == ENTRY)
         {
-            order.payload.set_status(FILLED);
+            orderbook.remove_from_level(order);
             order.payload.standing_quantity = order.payload.quantity;
+            order.payload.set_filled_price(price);
+            order.payload.set_status(FILLED);
             place_tp_sl(order, orderbook);
         }
         else
         {
-            orderbook.rtrack(orderbook.get_position(order.payload.id).entry_order);
             order.payload.set_status(CLOSED);
+            orderbook.rtrack(orderbook.get_position(order.payload.id).entry_order);
         }
 
-        orderbook.remove_from_level(order);
     }
 }
 

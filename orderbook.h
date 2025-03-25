@@ -23,7 +23,7 @@ private:
 public:
     const std::string instrument;
     OrderBook(const std::string instrument);
-    std::map<float, std::list<Order>> &get_opposite_book(const Order &order) const;
+    std::map<float, std::list<Order>> &get_book(const Order &order) const;
     Position &track(Order &order);
     void rtrack(Order &order);
     Position &get_position(const int id);
