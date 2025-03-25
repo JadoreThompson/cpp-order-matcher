@@ -35,7 +35,7 @@ struct OrderPayload
 {
 private:
     Status status;
-    float filled_price; // Make this a pointer var?
+    float filled_price;
     bool filled_price_set;
 
 public:

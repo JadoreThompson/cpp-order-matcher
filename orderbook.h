@@ -18,7 +18,6 @@ private:
     std::map<float, std::list<Order>> bids;
     std::map<float, std::list<Order>> asks;
     std::map<int, Position> tracker;
-    void push_tp_sl(Order &order);
 
 public:
     const std::string instrument;

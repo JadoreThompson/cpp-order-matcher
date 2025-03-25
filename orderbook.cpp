@@ -34,11 +34,13 @@ Position &OrderBook::track(Order &order)
     try
     {
         Position &position = this->tracker.at(order.payload.id);
-        std::cout << position.entry_order.payload.instrument << std::endl;
+        std::cout << "Tracking order with id " << std::to_string(order.payload.id) << std::endl;
+
         if (order.tag == ENTRY)
         {
             throw std::string("Position already exists");
         }
+
         if (order.tag == TAKE_PROFIT)
         {
             position.take_profit_order = &order;
@@ -111,27 +113,30 @@ void OrderBook::remove_from_level(Order &order)
     }
     else
     {
-        book[*((order.tag == TAKE_PROFIT) ? order.payload.take_profit_price : order.payload.stop_loss_price)].remove(order);
+        book[*((order.tag == TAKE_PROFIT)
+                   ? order.payload.take_profit_price
+                   : order.payload.stop_loss_price)]
+            .remove(order);
     }
-}
-
-void OrderBook::push_tp_sl(Order &order)
-{
-    auto &book = get_book(order);
-    const float *price = (order.tag == TAKE_PROFIT) ? order.payload.take_profit_price : order.payload.stop_loss_price;
-    track(order);
-    book[*price].push_back(order);
 }
 
 void OrderBook::push_order(Order &order)
 {
-    if (order.tag != ENTRY)
+    auto &book = get_book(order);
+
+    if (order.tag == ENTRY)
     {
-        return push_tp_sl(order);
+        book[order.payload.entry_price].push_back(order);
+    }
+    else
+    {
+        const float *price =
+            (order.tag == TAKE_PROFIT)
+                ? order.payload.take_profit_price
+                : order.payload.stop_loss_price;
+        book[*price].push_back(order);
     }
 
-    std::map<float, std::list<Order>> &book = (order.payload.side == ASK) ? this->asks : this->bids;
-    book[order.payload.entry_price].push_back(order);
     track(order);
 }
 

@@ -39,8 +39,8 @@ public:
     void place_market_order(OrderPayload &payload);
     void place_limit_order(OrderPayload &payload);
     MatchResult match(Order &order, OrderBook &orderbook);
-    void handle_filled_orders(std::list<Order> &orders, OrderBook &orderbook, const float price);
-    void handle_touched_orders(std::list<Order> &orders, OrderBook &orderbook);
+    void handle_filled_orders(std::list<Order *> &orders, OrderBook &orderbook, const float price);
+    void handle_touched_orders(std::list<Order *> &orders, OrderBook &orderbook);
     void place_tp_sl(Order &order, OrderBook &orderbook) const;
 };
 #endif

@@ -3,6 +3,7 @@
 #include <deque>
 #include <functional>
 #include <future>
+#include <math.h>
 #include "futures_engine.h"
 #include "orderbook.h"
 #include "order.h"
@@ -24,18 +25,18 @@ int main()
 
     while (true)
     {
+        id_counter++;
         OrderPayload p(
             id_counter,
-            // ots[std::rand() % 2],
             MARKET,
             sides[std::rand() % 2],
             "APPL",
             std::rand() % 10,
-            std::rand() % 50);
+            std::rand() % 50 + 1);
+
         queue.push(&p);
-        id_counter += 1;
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        std::cout << "Next Id to be passed => " << std::to_string(id_counter) << std::endl;
+        std::cout << "Next Id to be passed => " << std::to_string(id_counter + 1) << std::endl;
     }
 
     engine_thread.join();

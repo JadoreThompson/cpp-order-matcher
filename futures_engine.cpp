@@ -6,8 +6,12 @@
 #include "queue.h"
 #include "queue.cpp"
 
-MatchResult::MatchResult(MatchResultType result_type_,
-                         int price) : result_type(result_type_), result_set(true), price(price) {};
+MatchResult::MatchResult(
+    MatchResultType result_type_,
+    int price)
+    : result_type(result_type_),
+      result_set(true),
+      price(price) {};
 
 MatchResult::MatchResult() : result_set(false), price(-1) {}
 
@@ -37,14 +41,16 @@ MatchResultType &MatchResult::get_result_type()
 void FuturesEngine::start(Queue<OrderPayload> &queue)
 {
     this->orderbooks.emplace("APPL", OrderBook("APPL"));
-    int counter = 0;
 
     while (true)
     {
+        OrderPayload &payload = queue.get();
+        std::cout
+            << "Handling payload with id " << std::to_string(payload.id)
+            << std::endl;
+
         try
         {
-            OrderPayload &payload = queue.get();
-
             if (payload.order_type == LIMIT)
             {
                 place_limit_order(payload);
@@ -56,20 +62,11 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
         }
         catch (const std::string &e)
         {
-            std::cout << "*" << e << std::endl;
+            std::cout << "* " << e << " *" << std::endl;
         }
-
-        counter += 1;
-        if (counter % 50 == 0)
+        catch (const std::exception &e)
         {
-            const auto &size = this->orderbooks.at("APPL").size();
-            std::cout
-                << "Asks " << std::to_string(size.first)
-                << " Bids " << std::to_string(size.second)
-                << std::endl;
-
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-            counter = 0;
+            // std::cout << "* " << e.what() << " *" << std::endl;
         }
     }
 }
@@ -82,6 +79,7 @@ void FuturesEngine::place_limit_order(OrderPayload &payload)
 {
     try
     {
+        std::cout << "Placing limit order" << std::to_string(payload.id) << std::endl;
         OrderBook &orderbook = this->orderbooks.at(payload.instrument);
         Order order(payload, ENTRY);
         orderbook.push_order(order);
@@ -96,26 +94,38 @@ void FuturesEngine::place_market_order(OrderPayload &payload)
 {
     try
     {
+        std::cout << "Placing market order " << std::to_string(payload.id) << std::endl;
         OrderBook &orderbook = this->orderbooks.at(payload.instrument);
+        std::cout << "Orderbook found" << std::endl;
         Order order(payload, ENTRY);
+        std::cout << "Order created" << std::endl;
         MatchResult result = match(order, orderbook);
+        std::cout << "Matched" << std::endl;
         MatchResultType &result_type = result.get_result_type();
+        std::cout << "Got result type" << std::endl;
 
         if (result_type == SUCCESS)
         {
+            std::cout
+                << "match success at " << std::to_string(result.price)
+                << " Status " << std::to_string(payload.get_status())
+                << " Id " << std::to_string(payload.id)
+                << std::endl;
             order.payload.standing_quantity = order.payload.quantity;
             order.payload.set_filled_price(result.price);
-            order.payload.set_status(FILLED);
-            orderbook.track(order);
-            place_tp_sl(order, orderbook);
+            // order.payload.set_status(FILLED);
+            // orderbook.track(order);
+            // place_tp_sl(order, orderbook);
         }
         else
         {
+            std::cout
+                << "Matching failed ID " << std::to_string(payload.id)
+                << std::endl;
             if (result_type == PARTIAL)
             {
                 order.payload.set_status(PARTIALLY_FILLED);
             }
-
             orderbook.push_order(order);
         }
     }
@@ -127,7 +137,8 @@ void FuturesEngine::place_market_order(OrderPayload &payload)
 
 MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
 {
-    std::map<float, std::list<Order>> &book = orderbook.get_book(order);
+    auto &book = orderbook.get_book(order);
+    std::cout << "Matching order" << std::endl;
     float price;
 
     if (order.tag == ENTRY)
@@ -143,10 +154,11 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
         price = *order.payload.take_profit_price;
     }
 
+    std::cout << "Price: " << std::to_string(price) << std::endl;
+
     const int og_standing_quantity = order.payload.standing_quantity;
-    std::list<Order> touched;
-    std::list<Order> filled;
-    MatchResult result;
+    std::list<Order *> touched;
+    std::list<Order *> filled;
 
     for (auto &existing_order : book[price])
     {
@@ -156,11 +168,11 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
 
         if (existing_order.payload.standing_quantity == 0)
         {
-            filled.push_back(existing_order);
+            filled.push_back(&existing_order);
         }
         else
         {
-            touched.push_back(existing_order);
+            touched.push_back(&existing_order);
         }
 
         if (order.payload.standing_quantity == 0)
@@ -169,9 +181,13 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
         }
     }
 
+    std::cout << "Handling filled orders" << std::endl;
     handle_filled_orders(filled, orderbook, price);
+    std::cout << "Handling touched orders" << std::endl;
     handle_touched_orders(touched, orderbook);
 
+    std::cout << "Creating match result" << std::endl;
+    MatchResult result;
     if (order.payload.standing_quantity == 0)
     {
         result.set_result_type(SUCCESS);
@@ -186,40 +202,62 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
         result.set_result_type(PARTIAL);
     }
 
+    std::cout << "Returning result" << std::endl;
     return result;
 }
 
-void FuturesEngine::handle_filled_orders(std::list<Order> &orders, OrderBook &orderbook, const float price)
+void FuturesEngine::handle_filled_orders(std::list<Order *> &orders, OrderBook &orderbook, const float price)
 {
-    for (auto &order : orders)
+    for (auto &op : orders)
     {
+        auto order = *op;
+        std::cout << "Handling filled order " << std::to_string(order.payload.id) << std::endl;
         if (order.tag == ENTRY)
         {
             orderbook.remove_from_level(order);
+            std::cout
+                << "Handling filled order: " << std::to_string(order.payload.id)
+                << " Status: " << std::to_string(order.payload.get_status())
+                << " Tag: " << std::to_string(order.tag)
+                << " Id: " << std::to_string(order.payload.id)
+                << std::endl;
+            std::cout << "Removed from level" << std::endl;
+            std::cout
+                << "Current standing quantity: " << std::to_string(order.tag)
+                << " Quantity: " << std::to_string(order.payload.quantity)
+                << std::endl;
             order.payload.standing_quantity = order.payload.quantity;
+            std::cout << "Set standing quantity" << std::endl;
             order.payload.set_filled_price(price);
+            std::cout << "Set filled price" << std::endl;
             order.payload.set_status(FILLED);
+            std::cout << "Set status" << std::endl;
             place_tp_sl(order, orderbook);
+            std::cout << "Placed TP/SL" << std::endl;
         }
         else
         {
+            std::cout << "Closed order at " << std::to_string(price) << std::endl;
             order.payload.set_status(CLOSED);
             orderbook.rtrack(orderbook.get_position(order.payload.id).entry_order);
         }
-
     }
 }
 
-void FuturesEngine::handle_touched_orders(std::list<Order> &orders, OrderBook &orderbook)
+void FuturesEngine::handle_touched_orders(std::list<Order *> &orders, OrderBook &orderbook)
 {
-    for (auto &order : orders)
+    for (auto &op : orders)
     {
+        auto &order = *op;
+        // if (op.tag == ENTRY)
         if (order.tag == ENTRY)
         {
+            // op.payload.set_status(PARTIALLY_FILLED);
             order.payload.set_status(PARTIALLY_FILLED);
         }
         else
         {
+            // op.payload.set_status(PARTIALLY_CLOSED);
             order.payload.set_status(PARTIALLY_CLOSED);
         }
     }
@@ -227,15 +265,24 @@ void FuturesEngine::handle_touched_orders(std::list<Order> &orders, OrderBook &o
 
 void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook) const
 {
+    bool placed = false;
+    std::cout << "Placing TP/SL" << std::endl;
     if (order.payload.take_profit_price)
     {
         Order tp_order(order.payload, TAKE_PROFIT);
         orderbook.push_order(tp_order);
+        placed = true;
     }
 
     if (order.payload.stop_loss_price)
     {
         Order sl_order(order.payload, STOP_LOSS);
         orderbook.push_order(sl_order);
+        placed = true;
+    }
+
+    if (!placed)
+    {
+        std::cout << "No TP/SL placed" << std::endl;
     }
 }

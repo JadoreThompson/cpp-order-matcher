@@ -1,5 +1,6 @@
 #include "order.h"
 #include <string>
+#include <iostream>
 
 OrderPayload::OrderPayload(
     const int id_,
@@ -20,8 +21,7 @@ OrderPayload::OrderPayload(
       stop_loss_price(stop_loss_price_),
       take_profit_price(take_profit_price_),
       status(PENDING),
-      filled_price_set(false)
-      {};
+      filled_price_set(false) {};
 
 void OrderPayload::set_status(Status status_)
 {
@@ -37,17 +37,26 @@ Status &OrderPayload::get_status()
     return this->status;
 }
 
-void OrderPayload::set_filled_price(float price) {
-    if (this->filled_price_set) {
+void OrderPayload::set_filled_price(float price)
+{
+    if (this->filled_price_set)
+    {
+        // std::cout << "Filled price already set to "<< std::to_string(this->filled_price) << std::endl;
         throw std::string("Cannot set filled price on payload once already set");
     }
+
+    std::cout
+        << "Setting filled price to => " << std::to_string(price)
+        << " Status => " << std::to_string(this->status) << std::endl;
 
     this->filled_price = price;
     this->filled_price_set = true;
 }
 
-float OrderPayload::get_filled_price() {
-    if (!this->filled_price_set) {
+float OrderPayload::get_filled_price()
+{
+    if (!this->filled_price_set)
+    {
         throw std::string("Filled price not set");
     }
 
@@ -56,7 +65,8 @@ float OrderPayload::get_filled_price() {
 
 Order::Order(OrderPayload &payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
 
-bool Order::operator==(const Order &other) const {
+bool Order::operator==(const Order &other) const
+{
     return this->payload.id == other.payload.id;
 }
 
