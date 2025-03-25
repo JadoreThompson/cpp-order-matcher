@@ -11,7 +11,7 @@ class Queue
 private:
     std::deque<T *> queue;
     std::promise<bool> prom;
-    std::list<std::promise<bool>*> getters;
+    std::promise<bool> *getter = nullptr;
 public:
     void push(T *value);
     T &get();
