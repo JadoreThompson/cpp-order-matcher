@@ -14,7 +14,7 @@ MatchResult::MatchResult() : result_set(false), price(-1) {}
 void MatchResult::set_result_type(MatchResultType result_type)
 {
     {
-        if (result_set)
+        if (this->result_set)
         {
             throw std::string("Cannot set result on MatchResult once it's already set");
         }
@@ -26,7 +26,7 @@ void MatchResult::set_result_type(MatchResultType result_type)
 
 MatchResultType &MatchResult::get_result_type()
 {
-    if (!result_set)
+    if (!this->result_set)
     {
         throw std::string("Result not set");
     }
@@ -44,7 +44,6 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
         try
         {
             OrderPayload &payload = queue.get();
-            // std::cout << std::to_string(payload.id) << std::endl;
 
             if (payload.order_type == LIMIT)
             {
@@ -52,7 +51,6 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
             }
             else
             {
-                // std::cout << "ooo" << std::endl;
                 place_market_order(payload);
             }
 
@@ -60,8 +58,6 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
         catch (const std::string &e)
         {
             std::cout << "*" << e << std::endl;
-        } catch(const std::out_of_range &e) {
-            std::cout << "out of range" << std::endl;
         }
         // counter += 1;
         // if (counter % 500)
@@ -125,7 +121,7 @@ void FuturesEngine::place_market_order(OrderPayload &payload)
     }
     catch (const std::out_of_range &e)
     {
-        throw e;
+        throw std::string("Out of range for payload instrument => " + std::to_string(payload.instrument));
     }
 }
 
