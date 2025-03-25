@@ -6,14 +6,14 @@
 
 OrderBook::OrderBook(const std::string instrument_) : instrument(instrument_) {};
 
-std::map<float, std::list<Order>> &OrderBook::get_opposite_book(Order &order)
+std::map<float, std::list<Order>> &OrderBook::get_opposite_book(const Order &order)  const 
 {
     if (order.tag == ENTRY)
     {
-        return (order.payload.side == ASK) ? this->bids : this->asks;
+        return const_cast<std::map<float, std::list<Order>> &>((order.payload.side == ASK) ? this->bids : this->asks);
     }
 
-    return (order.payload.side == ASK) ? this->asks : this->bids;
+    return const_cast<std::map<float, std::list<Order>> &>((order.payload.side == ASK) ? this->asks : this->bids);
 }
 
 Position &OrderBook::get_position(const int id) {

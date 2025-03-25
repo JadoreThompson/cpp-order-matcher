@@ -1,11 +1,18 @@
 #ifndef _ORDER_
 #define _ORDER_
 #include <optional>
+#include <string>
 
 enum Side
 {
     BID,
     ASK
+};
+
+enum OrderType
+{
+    MARKET,
+    LIMIT
 };
 
 enum Status
@@ -28,26 +35,34 @@ struct OrderPayload
 {
 private:
     Status status;
+    float filled_price;
+    bool filled_price_set;
 
 public:
     const int id;
+    const OrderType order_type;
     const Side side;
+    const std::string instrument;
     const int quantity;
     int standing_quantity;
     float entry_price;
-    float *filled_price;
     float *stop_loss_price;
     float *take_profit_price;
 
     OrderPayload(
         const int id_,
+        const OrderType order_type_,
         const Side side_,
+        const std::string instrument,
         const int quantity_,
         float entry_price_,
         float *stop_loss_price_ = nullptr,
         float *take_profit_price_ = nullptr);
     void set_status(Status status_);
     Status &get_status();
+
+    void set_filled_price(float price);
+    float get_filled_price();
 };
 
 class Order
@@ -56,6 +71,10 @@ public:
     const Tag tag;
     OrderPayload &payload;
     Order(OrderPayload &payload_, const Tag tag_);
+    bool operator==(const Order &other) const
+    {
+        return this->payload.id == other.payload.id;
+    }
 };
 
 class Position
