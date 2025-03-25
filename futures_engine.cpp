@@ -47,7 +47,7 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
 
             if (payload.order_type == LIMIT)
             {
-                // place_limit_order(payload);
+                place_limit_order(payload);
             }
             else
             {
@@ -59,17 +59,18 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
         {
             std::cout << "*" << e << std::endl;
         }
-        // counter += 1;
-        // if (counter % 500)
-        // {
-        //     const auto &size = this->orderbooks.at("APPL").size();
-        //     std::cout
-        //         << "Asks " << std::to_string(size.first)
-        //         << "Bids " << std::to_string(size.second)
-        //         << std::endl;
 
-        //     std::this_thread::sleep_for(std::chrono::seconds(5));
-        // }
+        counter += 1;
+        if (counter % 50 == 0)
+        {
+            const auto &size = this->orderbooks.at("APPL").size();
+            std::cout
+                << "Asks " << std::to_string(size.first)
+                << " Bids " << std::to_string(size.second)
+                << std::endl;
+
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+        }
     }
 }
 
@@ -84,7 +85,6 @@ void FuturesEngine::place_limit_order(OrderPayload &payload)
         OrderBook &orderbook = this->orderbooks.at(payload.instrument);
         Order order(payload, ENTRY);
         orderbook.push_order(order);
-        orderbook.track(order);
     }
     catch (const std::out_of_range &e)
     {
@@ -103,9 +103,11 @@ void FuturesEngine::place_market_order(OrderPayload &payload)
 
         if (result_type == SUCCESS)
         {
-            order.payload.set_status(FILLED);
             order.payload.standing_quantity = order.payload.quantity;
             order.payload.set_filled_price(result.price);
+            order.payload.set_status(FILLED);
+            orderbook.track(order);
+            place_tp_sl(order, orderbook);
         }
         else
         {
@@ -116,12 +118,10 @@ void FuturesEngine::place_market_order(OrderPayload &payload)
 
             orderbook.push_order(order);
         }
-
-        orderbook.track(order);
     }
     catch (const std::out_of_range &e)
     {
-        throw std::string("Out of range for payload instrument => " + std::to_string(payload.instrument));
+        throw std::string("Out of range for payload instrument => " + payload.instrument);
     }
 }
 

@@ -1,5 +1,6 @@
 #include "orderbook.h"
 #include "order.h"
+#include <iostream>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -29,6 +30,7 @@ Position &OrderBook::track(Order &order)
     try
     {
         Position &position = this->tracker.at(order.payload.id);
+        std::cout << position.entry_order.payload.instrument << std::endl;
         if (order.tag == ENTRY)
         {
             throw std::string("Position already exists");
@@ -126,7 +128,8 @@ void OrderBook::push_order(Order &order)
 
     std::map<float, std::list<Order>> &book = (order.payload.side == ASK) ? this->asks : this->bids;
     book[order.payload.entry_price].push_back(order);
-    this->tracker.emplace(order.payload.id, Position(order));
+    track(order);
+    // this->tracker.emplace(order.payload.id, Position(order));
 }
 
 
