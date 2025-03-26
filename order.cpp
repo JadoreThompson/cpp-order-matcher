@@ -21,6 +21,7 @@ OrderPayload::OrderPayload(
       stop_loss_price(stop_loss_price_),
       take_profit_price(take_profit_price_),
       status(PENDING),
+      filled_price(0),
       filled_price_set(false) {};
 
 void OrderPayload::set_status(Status status_)
@@ -39,6 +40,7 @@ Status &OrderPayload::get_status()
 
 void OrderPayload::set_filled_price(float price)
 {
+        auto id = this->id; //74 happens 2 times
     if (this->filled_price_set)
     {
         throw std::string("Cannot set filled price on payload once already set");
