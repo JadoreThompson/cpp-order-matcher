@@ -23,7 +23,6 @@ public:
     const std::string instrument;
     OrderBook(const std::string instrument);
     std::map<float, std::list<Order *>> &get_book(const Order &order) const;
-    // Position &track(Order &order);
     Position &declare(OrderPayload &payload);
     Position &track(Order &order);
     void rtrack(Order &order);

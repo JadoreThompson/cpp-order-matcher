@@ -7,6 +7,7 @@
 
 OrderBook::OrderBook(const std::string instrument_) : instrument(instrument_) {};
 
+// Returns the book that the order should be matched against
 std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order) const
 {
     if (order.tag == ENTRY)

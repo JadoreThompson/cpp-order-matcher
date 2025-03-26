@@ -12,7 +12,6 @@
 #include <vector>
 
 void handle_engine(FuturesEngine &engine, Queue<OrderPayload> &queue);
-void test();
 
 int main()
 {
@@ -37,7 +36,7 @@ int main()
             std::rand() % 50 + 1);
 
         queue.push(&p);
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
         std::cout << "Next Id to be passed => " << std::to_string(id_counter + 1) << std::endl;
     }
 
@@ -49,24 +48,4 @@ int main()
 void handle_engine(FuturesEngine &engine, Queue<OrderPayload> &queue)
 {
     engine.start(queue);
-}
-
-void test()
-{
-    class myclass
-    {
-    public:
-        int *x;
-        OrderPayload *y;
-        Order *g;
-    };
-
-    std::map<int, myclass> mymap;
-    std::vector<myclass *> mylist;
-
-    mymap.emplace(1, myclass());
-    mylist.push_back(&mymap.at(1));
-    mymap.clear();
-
-    std::cout << "X: " << mylist[0] << std::endl;
 }

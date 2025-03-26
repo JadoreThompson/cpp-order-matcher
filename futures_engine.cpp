@@ -96,13 +96,16 @@ void FuturesEngine::place_market_order(OrderPayload &payload)
     {
         std::cout << "Placing market order " << std::to_string(payload.id) << std::endl;
         OrderBook &orderbook = this->orderbooks.at(payload.instrument);
+
         std::cout << "Orderbook found" << std::endl;
-        // Order order(payload, ENTRY);
         Position &position = orderbook.declare(payload);
+
         Order &order = *position.entry_order;
         std::cout << "Order created" << std::endl;
+
         MatchResult result = match(order, orderbook);
         std::cout << "Finished matching" << std::endl;
+
         MatchResultType &result_type = result.get_result_type();
         std::cout << "Got result type" << std::endl;
 
@@ -115,15 +118,15 @@ void FuturesEngine::place_market_order(OrderPayload &payload)
                 << std::endl;
             order.payload.standing_quantity = order.payload.quantity;
             order.payload.set_filled_price(result.price);
-            // order.payload.set_status(FILLED);
-            // orderbook.track(order);
-            // place_tp_sl(order, orderbook);
+            order.payload.set_status(FILLED);
+            place_tp_sl(order, orderbook);
         }
         else
         {
             std::cout
                 << "Matching unsuccesful Id " << std::to_string(payload.id)
                 << std::endl;
+
             if (result_type == PARTIAL)
             {
                 order.payload.set_status(PARTIALLY_FILLED);
@@ -149,11 +152,11 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
     }
     else if (order.tag == STOP_LOSS)
     {
-        price = *order.payload.stop_loss_price;
+        price = *(order.payload.stop_loss_price);
     }
     else
     {
-        price = *order.payload.take_profit_price;
+        price = *(order.payload.take_profit_price);
     }
 
     std::cout << "Price: " << std::to_string(price) << std::endl;
@@ -162,9 +165,15 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
     std::list<Order *> touched;
     std::list<Order *> filled;
 
+    std::cout << "Size of book: " << std::to_string(book[price].size()) << std::endl;
     for (auto &ex_order_p : book[price])
     {
         auto &ex_order = *ex_order_p;
+        std::cout
+            << "Matching order " << std::to_string(order.payload.id)
+            << " with " << std::to_string(ex_order.payload.id)
+            << std::endl;
+
         const int reduce_amount = std::min(order.payload.standing_quantity, ex_order.payload.standing_quantity);
         ex_order.payload.standing_quantity -= reduce_amount;
         order.payload.standing_quantity -= reduce_amount;
@@ -184,10 +193,22 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
         }
     }
 
-    std::cout << "Handling filled orders" << std::endl;
-    handle_filled_orders(filled, orderbook, price);
-    std::cout << "Handling touched orders" << std::endl;
-    handle_touched_orders(touched, orderbook);
+    if (filled.size() > 0)
+    {
+
+        std::cout << "Handling filled orders" << std::endl;
+        for (const auto &x: filled) {
+            std::cout << "Filled order: " << std::to_string(x->payload.id) << std::endl;
+        }
+        handle_filled_orders(filled, orderbook, price);
+    }
+
+    if (touched.size() > 0)
+    {
+
+        std::cout << "Handling touched orders" << std::endl;
+        handle_touched_orders(touched, orderbook);
+    }
 
     std::cout << "Creating match result" << std::endl;
     MatchResult result;
@@ -213,36 +234,36 @@ void FuturesEngine::handle_filled_orders(std::list<Order *> &orders, OrderBook &
 {
     for (auto &op : orders)
     {
-        auto o = *op;
-        std::cout << "Handling filled order " << std::to_string(o.payload.id) << std::endl;
-        if (o.tag == ENTRY)
+        auto &order = *op;
+        std::cout << "Handling filled order " << std::to_string(order.payload.id) << std::endl;
+        if (order.tag == ENTRY)
         {
-            orderbook.remove_from_level(o);
+            orderbook.remove_from_level(order);
             std::cout
-                << "Handling filled order: " << std::to_string(o.payload.id)
-                << " Status: " << std::to_string(o.payload.get_status())
-                << " Tag: " << std::to_string(o.tag)
-                << " Id: " << std::to_string(o.payload.id)
+                << "Handling filled order: " << std::to_string(order.payload.id)
+                << " Status: " << std::to_string(order.payload.get_status())
+                << " Tag: " << std::to_string(order.tag)
+                << " Id: " << std::to_string(order.payload.id)
                 << std::endl;
             std::cout << "Removed from level" << std::endl;
             std::cout
-                << "Current standing quantity: " << std::to_string(o.tag)
-                << " Quantity: " << std::to_string(o.payload.quantity)
+                << "Current standing quantity: " << std::to_string(order.tag)
+                << " Quantity: " << std::to_string(order.payload.quantity)
                 << std::endl;
-            o.payload.standing_quantity = o.payload.quantity;
+            order.payload.standing_quantity = order.payload.quantity;
             std::cout << "Set standing quantity" << std::endl;
-            o.payload.set_filled_price(price);
+            order.payload.set_filled_price(price);
             std::cout << "Set filled price" << std::endl;
-            o.payload.set_status(FILLED);
+            order.payload.set_status(FILLED);
             std::cout << "Set status" << std::endl;
-            place_tp_sl(o, orderbook);
+            place_tp_sl(order, orderbook);
             std::cout << "Placed TP/SL" << std::endl;
         }
         else
         {
             std::cout << "Closed order at " << std::to_string(price) << std::endl;
-            o.payload.set_status(CLOSED);
-            orderbook.rtrack(*(orderbook.get_position(o.payload.id).entry_order));
+            order.payload.set_status(CLOSED);
+            orderbook.rtrack(*(orderbook.get_position(order.payload.id).entry_order));
         }
     }
 }
