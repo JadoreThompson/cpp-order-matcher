@@ -1,33 +1,32 @@
 #include "queue.h"
+#include <chrono>
+#include <thread>
 
 
 template <class T>
 void Queue<T>::push(T *value)
 {
+    cvk::locker lock(sl);
     this->queue.push_back(value);
-    
-    if (this->getter) {
-        (*this->getter).set_value(true);
-        this->getter = nullptr;
-    }
 }
 
 template <class T>
-T &Queue<T>::get_nowait()
+T Queue<T>::get_nowait()
 {
-    T *value = this->queue.front();
+    T value = *this->queue.front();
     this->queue.pop_front();
-    return *value;
+    sl.unlock();
+    return value;
 }
 
 template <class T>
-T &Queue<T>::get()
+T Queue<T>::get()
 {
-    if (this->queue.empty())
-    {
-        std::promise<bool> prom;
-        this->getter = &prom;
-        prom.get_future().get();
+    sl.lock();
+    while(queue.empty()){
+        sl.unlock();
+        std::this_thread::sleep_for(std::chrono::microseconds(50));
+        sl.lock();
     }
 
     return get_nowait();

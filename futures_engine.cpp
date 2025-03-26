@@ -44,7 +44,7 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
 
     while (true)
     {
-        OrderPayload &payload = queue.get();
+        OrderPayload payload = queue.get();
         std::cout
             << "Handling payload with id " << std::to_string(payload.id)
             << std::endl;
