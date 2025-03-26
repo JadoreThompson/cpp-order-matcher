@@ -1,15 +1,11 @@
 #include <iostream>
 #include <thread>
-#include <deque>
-#include <functional>
-#include <future>
 #include <math.h>
 #include "futures_engine.h"
 #include "orderbook.h"
 #include "order.h"
 #include "queue.h"
 #include "queue.cpp"
-#include <vector>
 
 void handle_engine(FuturesEngine &engine, Queue<OrderPayload> &queue);
 
@@ -40,6 +36,7 @@ int main()
         std::cout << "Next Id to be passed => " << std::to_string(id_counter + 1) << std::endl;
     }
 
+
     engine_thread.join();
     // test();
     return 0;
@@ -48,4 +45,5 @@ int main()
 void handle_engine(FuturesEngine &engine, Queue<OrderPayload> &queue)
 {
     engine.start(queue);
+
 }

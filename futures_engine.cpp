@@ -64,10 +64,6 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
         {
             std::cout << "* " << e << " *" << std::endl;
         }
-        catch (const std::exception &e)
-        {
-            // std::cout << "* " << e.what() << " *" << std::endl;
-        }
     }
 }
 
@@ -81,7 +77,6 @@ void FuturesEngine::place_limit_order(OrderPayload &payload)
     {
         std::cout << "Placing limit order" << std::to_string(payload.id) << std::endl;
         OrderBook &orderbook = this->orderbooks.at(payload.instrument);
-        // Order order(payload, ENTRY);
         orderbook.push_order(*(orderbook.declare(payload).entry_order));
     }
     catch (const std::out_of_range &e)
@@ -273,30 +268,24 @@ void FuturesEngine::handle_touched_orders(std::list<Order *> &orders, OrderBook 
     for (auto &op : orders)
     {
         auto &order = *op;
-        // if (op.tag == ENTRY)
         if (order.tag == ENTRY)
-        {
-            // op.payload.set_status(PARTIALLY_FILLED);
+        {   
             order.payload.set_status(PARTIALLY_FILLED);
         }
         else
-        {
-            // op.payload.set_status(PARTIALLY_CLOSED);
+        {            
             order.payload.set_status(PARTIALLY_CLOSED);
         }
     }
 }
 
 void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook) const
-{
-    bool placed = false;
-    std::cout << "Placing TP/SL" << std::endl;
+{    
     if (order.payload.take_profit_price)
     {
         Order tp_order(order.payload, TAKE_PROFIT);
         orderbook.track(tp_order);
         orderbook.push_order(tp_order);
-        placed = true;
     }
 
     if (order.payload.stop_loss_price)
@@ -304,11 +293,5 @@ void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook) const
         Order sl_order(order.payload, STOP_LOSS);
         orderbook.track(sl_order);
         orderbook.push_order(sl_order);
-        placed = true;
-    }
-
-    if (!placed)
-    {
-        std::cout << "No TP/SL placed" << std::endl;
     }
 }

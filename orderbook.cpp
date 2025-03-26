@@ -68,9 +68,6 @@ Position &OrderBook::track(Order &order)
     {
 
         throw std::string("Cannot add " + std::to_string(order.tag) + " to tracker without an existing position");
-
-        // this->tracker.emplace(payload.payload.id, Position(payload));
-        // return this->tracker.at(payload.payload.id);
     }
 }
 
@@ -148,11 +145,6 @@ void OrderBook::push_order(Order &order)
                 : order.payload.stop_loss_price;
         book[*price].push_back(&order);
     }
-
-    // if (order.tag != ENTRY)
-    // {
-    //     track(order);
-    // }
 }
 
 std::pair<int, int> OrderBook::size()
