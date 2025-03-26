@@ -77,9 +77,9 @@ public:
 class Position
 {
 public:
-    Order &entry_order;
+    Order *entry_order;
     Order *stop_loss_order;
     Order *take_profit_order;
-    Position(Order &entry_order_);
+    Position(Order *entry_order_);
 };
 #endif

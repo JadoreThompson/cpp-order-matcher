@@ -9,8 +9,10 @@
 #include "order.h"
 #include "queue.h"
 #include "queue.cpp"
+#include <vector>
 
 void handle_engine(FuturesEngine &engine, Queue<OrderPayload> &queue);
+void test();
 
 int main()
 {
@@ -40,10 +42,31 @@ int main()
     }
 
     engine_thread.join();
+    // test();
     return 0;
 }
 
 void handle_engine(FuturesEngine &engine, Queue<OrderPayload> &queue)
 {
     engine.start(queue);
+}
+
+void test()
+{
+    class myclass
+    {
+    public:
+        int *x;
+        OrderPayload *y;
+        Order *g;
+    };
+
+    std::map<int, myclass> mymap;
+    std::vector<myclass *> mylist;
+
+    mymap.emplace(1, myclass());
+    mylist.push_back(&mymap.at(1));
+    mymap.clear();
+
+    std::cout << "X: " << mylist[0] << std::endl;
 }

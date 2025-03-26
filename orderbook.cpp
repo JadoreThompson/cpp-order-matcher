@@ -7,14 +7,14 @@
 
 OrderBook::OrderBook(const std::string instrument_) : instrument(instrument_) {};
 
-std::map<float, std::list<Order>> &OrderBook::get_book(const Order &order) const
+std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order) const
 {
     if (order.tag == ENTRY)
     {
-        return const_cast<std::map<float, std::list<Order>> &>((order.payload.side == ASK) ? this->bids : this->asks);
+        return const_cast<std::map<float, std::list<Order *>> &>((order.payload.side == ASK) ? this->bids : this->asks);
     }
 
-    return const_cast<std::map<float, std::list<Order>> &>((order.payload.side == ASK) ? this->asks : this->bids);
+    return const_cast<std::map<float, std::list<Order *>> &>((order.payload.side == ASK) ? this->asks : this->bids);
 }
 
 Position &OrderBook::get_position(const int id)
@@ -29,6 +29,18 @@ Position &OrderBook::get_position(const int id)
     }
 }
 
+// Specifically used for ENTRY orders
+Position &OrderBook::declare(OrderPayload &payload)
+{
+    if (this->tracker.find(payload.id) != this->tracker.end())
+    {
+        throw std::string("Position already exists");
+    }
+    this->tracker.emplace(payload.id, Position(new Order(payload, ENTRY)));
+    return this->tracker.at(payload.id);
+}
+
+// Used for STOP_LOSS and TAKE_PROFIT orders
 Position &OrderBook::track(Order &order)
 {
     try
@@ -53,16 +65,15 @@ Position &OrderBook::track(Order &order)
     }
     catch (const std::out_of_range &e)
     {
-        if (order.tag != ENTRY)
-        {
-            throw std::string("Cannot add " + std::to_string(order.tag) + " to tracker without an existing position");
-        }
 
-        this->tracker.emplace(order.payload.id, Position(order));
-        return this->tracker.at(order.payload.id);
+        throw std::string("Cannot add " + std::to_string(order.tag) + " to tracker without an existing position");
+
+        // this->tracker.emplace(payload.payload.id, Position(payload));
+        // return this->tracker.at(payload.payload.id);
     }
 }
 
+// Calling this function will cause the pointers within the orderbook to be invalidated
 void OrderBook::rtrack(Order &order)
 {
     try
@@ -99,7 +110,7 @@ void OrderBook::rtrack(Order &order)
     }
     catch (const std::out_of_range &e)
     {
-        throw std::string("Order doesn't exist");
+        throw std::string("Position for order id " + std::to_string(order.payload.id) + " doesn't exist");
     }
 }
 
@@ -109,14 +120,14 @@ void OrderBook::remove_from_level(Order &order)
 
     if (order.tag == ENTRY)
     {
-        book[order.payload.entry_price].remove(order);
+        book[order.payload.entry_price].remove(&order);
     }
     else
     {
         book[*((order.tag == TAKE_PROFIT)
                    ? order.payload.take_profit_price
                    : order.payload.stop_loss_price)]
-            .remove(order);
+            .remove(&order);
     }
 }
 
@@ -126,7 +137,7 @@ void OrderBook::push_order(Order &order)
 
     if (order.tag == ENTRY)
     {
-        book[order.payload.entry_price].push_back(order);
+        book[order.payload.entry_price].push_back(&order);
     }
     else
     {
@@ -134,10 +145,13 @@ void OrderBook::push_order(Order &order)
             (order.tag == TAKE_PROFIT)
                 ? order.payload.take_profit_price
                 : order.payload.stop_loss_price;
-        book[*price].push_back(order);
+        book[*price].push_back(&order);
     }
 
-    track(order);
+    // if (order.tag != ENTRY)
+    // {
+    //     track(order);
+    // }
 }
 
 std::pair<int, int> OrderBook::size()

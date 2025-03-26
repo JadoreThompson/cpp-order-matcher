@@ -70,7 +70,7 @@ bool Order::operator==(const Order &other) const
     return this->payload.id == other.payload.id;
 }
 
-Position::Position(Order &entry_order_)
+Position::Position(Order *entry_order_)
     : entry_order(entry_order_),
       stop_loss_order(nullptr),
       take_profit_order(nullptr) {};

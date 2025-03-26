@@ -81,8 +81,8 @@ void FuturesEngine::place_limit_order(OrderPayload &payload)
     {
         std::cout << "Placing limit order" << std::to_string(payload.id) << std::endl;
         OrderBook &orderbook = this->orderbooks.at(payload.instrument);
-        Order order(payload, ENTRY);
-        orderbook.push_order(order);
+        // Order order(payload, ENTRY);
+        orderbook.push_order(*(orderbook.declare(payload).entry_order));
     }
     catch (const std::out_of_range &e)
     {
@@ -97,10 +97,12 @@ void FuturesEngine::place_market_order(OrderPayload &payload)
         std::cout << "Placing market order " << std::to_string(payload.id) << std::endl;
         OrderBook &orderbook = this->orderbooks.at(payload.instrument);
         std::cout << "Orderbook found" << std::endl;
-        Order order(payload, ENTRY);
+        // Order order(payload, ENTRY);
+        Position &position = orderbook.declare(payload);
+        Order &order = *position.entry_order;
         std::cout << "Order created" << std::endl;
         MatchResult result = match(order, orderbook);
-        std::cout << "Matched" << std::endl;
+        std::cout << "Finished matching" << std::endl;
         MatchResultType &result_type = result.get_result_type();
         std::cout << "Got result type" << std::endl;
 
@@ -120,7 +122,7 @@ void FuturesEngine::place_market_order(OrderPayload &payload)
         else
         {
             std::cout
-                << "Matching failed ID " << std::to_string(payload.id)
+                << "Matching unsuccesful Id " << std::to_string(payload.id)
                 << std::endl;
             if (result_type == PARTIAL)
             {
@@ -160,19 +162,20 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
     std::list<Order *> touched;
     std::list<Order *> filled;
 
-    for (auto &existing_order : book[price])
+    for (auto &ex_order_p : book[price])
     {
-        const int reduce_amount = std::min(order.payload.standing_quantity, existing_order.payload.standing_quantity);
-        existing_order.payload.standing_quantity -= reduce_amount;
+        auto &ex_order = *ex_order_p;
+        const int reduce_amount = std::min(order.payload.standing_quantity, ex_order.payload.standing_quantity);
+        ex_order.payload.standing_quantity -= reduce_amount;
         order.payload.standing_quantity -= reduce_amount;
 
-        if (existing_order.payload.standing_quantity == 0)
+        if (ex_order.payload.standing_quantity == 0)
         {
-            filled.push_back(&existing_order);
+            filled.push_back(ex_order_p);
         }
         else
         {
-            touched.push_back(&existing_order);
+            touched.push_back(ex_order_p);
         }
 
         if (order.payload.standing_quantity == 0)
@@ -210,36 +213,36 @@ void FuturesEngine::handle_filled_orders(std::list<Order *> &orders, OrderBook &
 {
     for (auto &op : orders)
     {
-        auto order = *op;
-        std::cout << "Handling filled order " << std::to_string(order.payload.id) << std::endl;
-        if (order.tag == ENTRY)
+        auto o = *op;
+        std::cout << "Handling filled order " << std::to_string(o.payload.id) << std::endl;
+        if (o.tag == ENTRY)
         {
-            orderbook.remove_from_level(order);
+            orderbook.remove_from_level(o);
             std::cout
-                << "Handling filled order: " << std::to_string(order.payload.id)
-                << " Status: " << std::to_string(order.payload.get_status())
-                << " Tag: " << std::to_string(order.tag)
-                << " Id: " << std::to_string(order.payload.id)
+                << "Handling filled order: " << std::to_string(o.payload.id)
+                << " Status: " << std::to_string(o.payload.get_status())
+                << " Tag: " << std::to_string(o.tag)
+                << " Id: " << std::to_string(o.payload.id)
                 << std::endl;
             std::cout << "Removed from level" << std::endl;
             std::cout
-                << "Current standing quantity: " << std::to_string(order.tag)
-                << " Quantity: " << std::to_string(order.payload.quantity)
+                << "Current standing quantity: " << std::to_string(o.tag)
+                << " Quantity: " << std::to_string(o.payload.quantity)
                 << std::endl;
-            order.payload.standing_quantity = order.payload.quantity;
+            o.payload.standing_quantity = o.payload.quantity;
             std::cout << "Set standing quantity" << std::endl;
-            order.payload.set_filled_price(price);
+            o.payload.set_filled_price(price);
             std::cout << "Set filled price" << std::endl;
-            order.payload.set_status(FILLED);
+            o.payload.set_status(FILLED);
             std::cout << "Set status" << std::endl;
-            place_tp_sl(order, orderbook);
+            place_tp_sl(o, orderbook);
             std::cout << "Placed TP/SL" << std::endl;
         }
         else
         {
             std::cout << "Closed order at " << std::to_string(price) << std::endl;
-            order.payload.set_status(CLOSED);
-            orderbook.rtrack(orderbook.get_position(order.payload.id).entry_order);
+            o.payload.set_status(CLOSED);
+            orderbook.rtrack(*(orderbook.get_position(o.payload.id).entry_order));
         }
     }
 }
@@ -270,6 +273,7 @@ void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook) const
     if (order.payload.take_profit_price)
     {
         Order tp_order(order.payload, TAKE_PROFIT);
+        orderbook.track(tp_order);
         orderbook.push_order(tp_order);
         placed = true;
     }
@@ -277,6 +281,7 @@ void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook) const
     if (order.payload.stop_loss_price)
     {
         Order sl_order(order.payload, STOP_LOSS);
+        orderbook.track(sl_order);
         orderbook.push_order(sl_order);
         placed = true;
     }

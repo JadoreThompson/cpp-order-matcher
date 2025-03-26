@@ -15,14 +15,16 @@ enum RemoveType
 class OrderBook
 {
 private:
-    std::map<float, std::list<Order>> bids;
-    std::map<float, std::list<Order>> asks;
+    std::map<float, std::list<Order *>> bids;
+    std::map<float, std::list<Order *>> asks;
     std::map<int, Position> tracker;
 
 public:
     const std::string instrument;
     OrderBook(const std::string instrument);
-    std::map<float, std::list<Order>> &get_book(const Order &order) const;
+    std::map<float, std::list<Order *>> &get_book(const Order &order) const;
+    // Position &track(Order &order);
+    Position &declare(OrderPayload &payload);
     Position &track(Order &order);
     void rtrack(Order &order);
     Position &get_position(const int id);
