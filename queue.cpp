@@ -1,3 +1,4 @@
+#include <iostream>
 #include "queue.h"
 
 
@@ -25,6 +26,7 @@ T &Queue<T>::get()
 {
     if (this->queue.empty())
     {
+        std::cout << "Queue size " << std::to_string(this->queue.size()) << std::endl;
         std::promise<bool> prom;
         this->getter = &prom;
         prom.get_future().get();

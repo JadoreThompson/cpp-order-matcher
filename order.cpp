@@ -41,7 +41,6 @@ void OrderPayload::set_filled_price(float price)
 {
     if (this->filled_price_set)
     {
-        // std::cout << "Filled price already set to "<< std::to_string(this->filled_price) << std::endl;
         throw std::string("Cannot set filled price on payload once already set");
     }
 
