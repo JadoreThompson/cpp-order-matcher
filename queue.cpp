@@ -1,36 +1,51 @@
 #include <iostream>
 #include "queue.h"
 
+template <class T>
+void Queue<T>::lock()
+{
+    while (this->flag.test_and_set(std::memory_order_acquire))
+    {
+    };
+    this->locked = true;
+}
 
 template <class T>
-void Queue<T>::push(T *value)
+void Queue<T>::unlock()
 {
+    this->flag.clear(std::memory_order_release);
+    this->locked = false;
+}
+
+template <class T>
+void Queue<T>::push(std::shared_ptr<T> value)
+{
+    lock();
     this->queue.push_back(value);
-    
-    if (this->getter) {
-        (*this->getter).set_value(true);
-        this->getter = nullptr;
-    }
+    unlock();
 }
 
 template <class T>
 T &Queue<T>::get_nowait()
 {
-    T *value = this->queue.front();
+    lock();
+    T &value = *(this->queue.front());
     this->queue.pop_front();
-    return *value;
+    unlock();
+
+    return value;
 }
 
 template <class T>
 T &Queue<T>::get()
 {
-    if (this->queue.empty())
+    lock();
+    while (this->queue.empty())
     {
-        std::cout << "Queue size " << std::to_string(this->queue.size()) << std::endl;
-        std::promise<bool> prom;
-        this->getter = &prom;
-        prom.get_future().get();
+        unlock();
+        lock();
     }
 
+    unlock();
     return get_nowait();
 }

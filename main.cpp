@@ -1,6 +1,8 @@
 #include <iostream>
+#include <utility>
 #include <thread>
 #include <math.h>
+#include <memory>
 #include "futures_engine.h"
 #include "orderbook.h"
 #include "order.h"
@@ -13,7 +15,6 @@ int main()
 {
     FuturesEngine engine;
     Queue<OrderPayload> queue;
-    OrderBook ob("APPL");
     int id_counter = 0;
     const Side sides[] = {BID, ASK};
     const OrderType ots[] = {MARKET, LIMIT};
@@ -23,7 +24,8 @@ int main()
     while (true)
     {
         id_counter++;
-        OrderPayload p(
+        
+        std::shared_ptr<OrderPayload> p = std::make_shared<OrderPayload>(
             id_counter,
             MARKET,
             sides[std::rand() % 2],
@@ -31,19 +33,16 @@ int main()
             std::rand() % 10,
             std::rand() % 50 + 1);
 
-        queue.push(&p);
+        queue.push(p);
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
         std::cout << "Next Id to be passed => " << std::to_string(id_counter + 1) << std::endl;
     }
 
-
     engine_thread.join();
-    // test();
     return 0;
 }
 
 void handle_engine(FuturesEngine &engine, Queue<OrderPayload> &queue)
 {
     engine.start(queue);
-
 }

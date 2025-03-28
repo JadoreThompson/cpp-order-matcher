@@ -7,7 +7,7 @@
 
 OrderBook::OrderBook(const std::string instrument_) : instrument(instrument_) {};
 
-// Returns the book that the order should be matched against
+// Returns the book that the order should be matched against.
 std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order) const
 {
     if (order.tag == ENTRY)
@@ -15,7 +15,7 @@ std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order) con
         return const_cast<std::map<float, std::list<Order *>> &>((order.payload.side == ASK) ? this->bids : this->asks);
     }
 
-    return const_cast<std::map<float, std::list<Order *>> &>((order.payload.side == ASK) ? this->asks : this->bids);
+    return const_cast<std::map<float, std::list<Order *>> &>((order.payload.side == ASK) ? this->bids : this->asks);
 }
 
 Position &OrderBook::get_position(const int id)
@@ -30,18 +30,19 @@ Position &OrderBook::get_position(const int id)
     }
 }
 
-// Specifically used for ENTRY orders
+// Specifically used for ENTRY orders.
 Position &OrderBook::declare(OrderPayload &payload)
 {
     if (this->tracker.find(payload.id) != this->tracker.end())
     {
         throw std::string("Position already exists");
     }
+
     this->tracker.emplace(payload.id, Position(new Order(payload, ENTRY)));
     return this->tracker.at(payload.id);
 }
 
-// Used for STOP_LOSS and TAKE_PROFIT orders
+// Used for STOP_LOSS and TAKE_PROFIT orders.
 Position &OrderBook::track(Order &order)
 {
     try
@@ -62,16 +63,20 @@ Position &OrderBook::track(Order &order)
         {
             position.stop_loss_order = &order;
         }
+
         return position;
     }
     catch (const std::out_of_range &e)
     {
-
         throw std::string("Cannot add " + std::to_string(order.tag) + " to tracker without an existing position");
     }
 }
 
-// Calling this function will cause the pointers within the orderbook to be invalidated
+/*
+ * Calling this will invalidate the pointers
+ * within the bids, asks. Ensure you remove
+ * the order from the level before calling this.
+ */
 void OrderBook::rtrack(Order &order)
 {
     try

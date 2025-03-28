@@ -78,8 +78,8 @@ class Position
 {
 public:
     Order *entry_order;
-    Order *stop_loss_order;
-    Order *take_profit_order;
+    Order *stop_loss_order = nullptr;
+    Order *take_profit_order = nullptr;
     Position(Order *entry_order_);
 };
 #endif
