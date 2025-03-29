@@ -26,10 +26,11 @@ void Queue<T>::push(std::shared_ptr<T> value)
 }
 
 template <class T>
-T &Queue<T>::get_nowait()
+// T & Queue<T>::get_nowait()
+std::shared_ptr<T> Queue<T>::get_nowait()
 {
     lock();
-    T &value = *(this->queue.front());
+    std::shared_ptr<T> value = this->queue.front();
     this->queue.pop_front();
     unlock();
 
@@ -37,7 +38,8 @@ T &Queue<T>::get_nowait()
 }
 
 template <class T>
-T &Queue<T>::get()
+// T &Queue<T>::get()
+std::shared_ptr<T> Queue<T>::get()
 {
     lock();
     while (this->queue.empty())

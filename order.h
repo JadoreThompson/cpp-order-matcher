@@ -1,7 +1,9 @@
 #ifndef _ORDER_
 #define _ORDER_
+
 #include <optional>
 #include <string>
+#include <memory>
 
 enum Side
 {
@@ -48,6 +50,9 @@ public:
     float entry_price;
     float *stop_loss_price;
     float *take_profit_price;
+    float closed_price;
+    float realised_pnl;
+    float unrealised_pnl;
 
     OrderPayload(
         const int id_,
@@ -63,14 +68,17 @@ public:
 
     void set_filled_price(float price);
     float get_filled_price();
+
 };
 
 class Order
 {
 public:
     const Tag tag;
-    OrderPayload &payload;
-    Order(OrderPayload &payload_, const Tag tag_);
+    // OrderPayload &payload;
+    std::shared_ptr<OrderPayload> payload;
+    // Order(OrderPayload &payload_, const Tag tag_);
+    Order(std::shared_ptr<OrderPayload> payload_, const Tag tag_);
     bool operator==(const Order &other) const;
 };
 

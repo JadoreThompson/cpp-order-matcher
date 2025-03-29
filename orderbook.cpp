@@ -96,18 +96,21 @@ void OrderBook::rtrack(Order &order)
             if (position.take_profit_order)
             {
                 remove_from_level(*position.take_profit_order);
+                delete position.take_profit_order;
             }
 
             if (position.stop_loss_order)
             {
                 remove_from_level(*position.stop_loss_order);
+                delete position.stop_loss_order;
             }
 
             if (order.payload.get_status() == (PENDING || PARTIALLY_FILLED))
             {
                 remove_from_level(order);
+                delete position.entry_order;
             }
-
+            
             this->tracker.erase(order.payload.id);
         }
     }

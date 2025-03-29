@@ -20,6 +20,8 @@ OrderPayload::OrderPayload(
       entry_price(entry_price_),
       stop_loss_price(stop_loss_price_),
       take_profit_price(take_profit_price_),
+      realised_pnl(0.0),
+      unrealised_pnl(0.0),
       status(PENDING),
       filled_price_set(false) {};
 
@@ -39,14 +41,11 @@ Status &OrderPayload::get_status()
 
 void OrderPayload::set_filled_price(float price)
 {
+    std::cout << "Setting filled price for " << this->id << " Status: " << this->status << std::endl;
     if (this->filled_price_set)
     {
         throw std::string("Cannot set filled price on payload once already set");
     }
-
-    std::cout
-        << "Setting filled price to => " << std::to_string(price)
-        << " Status => " << std::to_string(this->status) << std::endl;
 
     this->filled_price = price;
     this->filled_price_set = true;
@@ -62,11 +61,13 @@ float OrderPayload::get_filled_price()
     return this->filled_price;
 }
 
-Order::Order(OrderPayload &payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
+// Order::Order(OrderPayload &payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
+Order::Order(std::shared_ptr<OrderPayload> payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
 
 bool Order::operator==(const Order &other) const
 {
-    return this->payload.id == other.payload.id;
+    // return this->payload.id == other.payload.id;
+    return this->payload->id == other.payload->id;
 }
 
 Position::Position(Order *entry_order_)

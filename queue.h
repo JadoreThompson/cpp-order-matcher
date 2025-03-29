@@ -13,8 +13,7 @@ template <class T>
 class Queue
 {
 private:
-    // std::deque<T *> queue;
-    // std::deque<std::unique_ptr<T>> queue;
+    // std::deque<std::shared_ptr<T>> queue;
     std::deque<std::shared_ptr<T>> queue;
     std::atomic_flag flag = ATOMIC_FLAG_INIT;
     bool locked = false;
@@ -23,7 +22,9 @@ private:
 
 public:
     void push(std::shared_ptr<T> value);
-    T &get();
-    T &get_nowait();
+    // T &get();
+    std::shared_ptr<T> get();
+    // T &get_nowait();
+    std::shared_ptr<T> get_nowait();
 };
 #endif
