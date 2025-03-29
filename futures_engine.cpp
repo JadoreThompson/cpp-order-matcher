@@ -92,19 +92,19 @@ void FuturesEngine::handler(OrderPayload &payload)
 }
 
 // void FuturesEngine::place_limit_order(OrderPayload &payload)
-// void FuturesEngine::place_limit_order(std::shared_ptr<OrderPayload> payload)
-// {
-//     try
-//     {
-//         std::cout << "Placing limit order" << std::to_string(payload.id) << std::endl;
-//         OrderBook &orderbook = this->orderbooks.at(payload.instrument);
-//         orderbook.push_order(*orderbook.declare(payload).entry_order);
-//     }
-//     catch (const std::out_of_range &e)
-//     {
-//         throw std::string("Orderbook for " + payload.instrument + " doesn't exist");
-//     }
-// }
+void FuturesEngine::place_limit_order(std::shared_ptr<OrderPayload> payload)
+{
+    try
+    {
+        std::cout << "Placing limit order" << std::to_string(payload->id) << std::endl;
+        OrderBook &orderbook = this->orderbooks.at(payload->instrument);
+        orderbook.push_order(*orderbook.declare(payload).entry_order);
+    }
+    catch (const std::out_of_range &e)
+    {
+        throw std::string("Orderbook for " + payload->instrument + " doesn't exist");
+    }
+}
 
 // void FuturesEngine::place_market_order(OrderPayload &payload)
 void FuturesEngine::place_market_order(std::shared_ptr<OrderPayload> payload_p)
