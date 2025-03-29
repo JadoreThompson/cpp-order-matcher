@@ -37,10 +37,8 @@ private:
 public:
     void start(Queue<OrderPayload> &queue);
     void handler(OrderPayload &payload);
-    // void place_market_order(OrderPayload &payload);
-    // void place_limit_order(OrderPayload &payload);
-    void place_market_order(std::shared_ptr<OrderPayload> payload);
-    void place_limit_order(std::shared_ptr<OrderPayload> payload);
+    void place_market_order(std::shared_ptr<OrderPayload> &payload);
+    void place_limit_order(std::shared_ptr<OrderPayload> &payload);
     MatchResult match(Order &order, OrderBook &orderbook);
     MatchResult gen_match_result(const float og_standing_quantity, Order &order, const float price);
     void handle_filled_orders(std::list<std::tuple<Order *, int>> &orders, OrderBook &orderbook, const float price);

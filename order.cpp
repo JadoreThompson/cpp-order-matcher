@@ -41,7 +41,7 @@ Status &OrderPayload::get_status()
 
 void OrderPayload::set_filled_price(float price)
 {
-    std::cout << "Setting filled price for " << this->id << " Status: " << this->status << std::endl;
+    // std::cout << "Setting filled price for " << this->id << " Status: " << this->status << std::endl;
     if (this->filled_price_set)
     {
         throw std::string("Cannot set filled price on payload once already set");
@@ -61,12 +61,11 @@ float OrderPayload::get_filled_price()
     return this->filled_price;
 }
 
-// Order::Order(OrderPayload &payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
+
 Order::Order(std::shared_ptr<OrderPayload> payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
 
 bool Order::operator==(const Order &other) const
 {
-    // return this->payload.id == other.payload.id;
     return this->payload->id == other.payload->id;
 }
 

@@ -14,7 +14,6 @@ float calc_buy_pl(const float amount, const float open_price, const float close_
 /// @param order 
 /// @param standing_quantity: Standing quantity of order pre match subtractions
 /// @param price 
-/// @param ob 
 void calc_upl(Order &order, const float standing_quantity, const float price)
 {
     float filled_price;

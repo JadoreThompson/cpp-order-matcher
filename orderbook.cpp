@@ -48,7 +48,7 @@ Position &OrderBook::track(Order &order)
     try
     {
         Position &position = this->tracker.at(order.payload->id);
-        std::cout << "Tracking order with id " << std::to_string(order.payload->id) << std::endl;
+        // std::cout << "Tracking order with id " << std::to_string(order.payload->id) << std::endl;
 
         if (order.tag == ENTRY)
         {

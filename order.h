@@ -75,9 +75,7 @@ class Order
 {
 public:
     const Tag tag;
-    // OrderPayload &payload;
     std::shared_ptr<OrderPayload> payload;
-    // Order(OrderPayload &payload_, const Tag tag_);
     Order(std::shared_ptr<OrderPayload> payload_, const Tag tag_);
     bool operator==(const Order &other) const;
 };

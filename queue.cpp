@@ -26,7 +26,6 @@ void Queue<T>::push(std::shared_ptr<T> value)
 }
 
 template <class T>
-// T & Queue<T>::get_nowait()
 std::shared_ptr<T> Queue<T>::get_nowait()
 {
     lock();
@@ -38,7 +37,6 @@ std::shared_ptr<T> Queue<T>::get_nowait()
 }
 
 template <class T>
-// T &Queue<T>::get()
 std::shared_ptr<T> Queue<T>::get()
 {
     lock();
