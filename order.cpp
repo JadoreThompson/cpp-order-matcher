@@ -2,7 +2,9 @@
 #include <string>
 #include <iostream>
 
-OrderPayload::OrderPayload(
+QueuePayload::QueuePayload(const Category category_, std::shared_ptr<BasePayload> payloadp_) : category(category_), payload(payloadp_) {};
+
+NewOrderPayload::NewOrderPayload(
     const int id_,
     const OrderType order_type_,
     const Side side_,
@@ -11,7 +13,7 @@ OrderPayload::OrderPayload(
     float entry_price_,
     float *stop_loss_price_,
     float *take_profit_price_)
-    : id(id_),
+    : BasePayload(id_),
       order_type(order_type),
       side(side_),
       instrument(instrument_),
@@ -25,7 +27,7 @@ OrderPayload::OrderPayload(
       status(PENDING),
       filled_price_set(false) {};
 
-void OrderPayload::set_status(Status status_)
+void NewOrderPayload::set_status(Status status_)
 {
     if (this->status == CLOSED)
     {
@@ -34,14 +36,13 @@ void OrderPayload::set_status(Status status_)
     this->status = status;
 }
 
-Status &OrderPayload::get_status()
+Status &NewOrderPayload::get_status()
 {
     return this->status;
 }
 
-void OrderPayload::set_filled_price(float price)
+void NewOrderPayload::set_filled_price(float price)
 {
-    // std::cout << "Setting filled price for " << this->id << " Status: " << this->status << std::endl;
     if (this->filled_price_set)
     {
         throw std::string("Cannot set filled price on payload once already set");
@@ -51,7 +52,7 @@ void OrderPayload::set_filled_price(float price)
     this->filled_price_set = true;
 }
 
-float OrderPayload::get_filled_price()
+float NewOrderPayload::get_filled_price()
 {
     if (!this->filled_price_set)
     {
@@ -61,8 +62,7 @@ float OrderPayload::get_filled_price()
     return this->filled_price;
 }
 
-
-Order::Order(std::shared_ptr<OrderPayload> payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
+Order::Order(std::shared_ptr<NewOrderPayload> payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
 
 bool Order::operator==(const Order &other) const
 {

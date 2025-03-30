@@ -33,7 +33,13 @@ enum Tag
     TAKE_PROFIT,
 };
 
-struct OrderPayload
+struct BasePayload
+{
+    const int id;
+    BasePayload(const int id_) : id(id_) {};
+};
+
+struct NewOrderPayload : public BasePayload
 {
 private:
     Status status;
@@ -41,7 +47,7 @@ private:
     bool filled_price_set;
 
 public:
-    const int id;
+    // const int id;
     const OrderType order_type;
     const Side side;
     const std::string instrument;
@@ -54,7 +60,7 @@ public:
     float realised_pnl;
     float unrealised_pnl;
 
-    OrderPayload(
+    NewOrderPayload(
         const int id_,
         const OrderType order_type_,
         const Side side_,
@@ -68,15 +74,30 @@ public:
 
     void set_filled_price(float price);
     float get_filled_price();
+};
 
+struct QueuePayload
+{
+    enum Category
+    {
+        NEW,
+        MODIFY,
+        CANCEL,
+        CLOSE
+    };
+
+    const Category category;
+    std::shared_ptr<BasePayload> payload;
+
+    QueuePayload(const Category category_, std::shared_ptr<BasePayload> payloadp_);
 };
 
 class Order
 {
 public:
     const Tag tag;
-    std::shared_ptr<OrderPayload> payload;
-    Order(std::shared_ptr<OrderPayload> payload_, const Tag tag_);
+    std::shared_ptr<NewOrderPayload> payload;
+    Order(std::shared_ptr<NewOrderPayload> payload_, const Tag tag_);
     bool operator==(const Order &other) const;
 };
 

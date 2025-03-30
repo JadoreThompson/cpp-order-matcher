@@ -18,7 +18,7 @@ public:
     const std::string instrument;
     OrderBook(const std::string instrument);
     std::map<float, std::list<Order *>> &get_book(const Order &order) const;
-    Position &declare(std::shared_ptr<OrderPayload> payload);
+    Position &declare(std::shared_ptr<NewOrderPayload> payload);
     Position &track(Order &order);
     void rtrack(Order &order);
     Position &get_position(const int id);

@@ -39,24 +39,29 @@ MatchResultType &MatchResult::get_result_type()
     return this->result_type;
 }
 
-void FuturesEngine::start(Queue<OrderPayload> &queue)
+void FuturesEngine::start(Queue &queue)
 {
-    this->orderbooks.emplace("APPL", OrderBook("APPL"));
+    this->orderbooks.emplace("APPL", "APPL");
 
     while (true)
     {
-        std::shared_ptr<OrderPayload> payload_p = queue.get();
-        auto &payload = *payload_p;
+        // std::shared_ptr<NewOrderPayload> payload_p = queue.get();
+        std::shared_ptr<QueuePayload> qpayload = queue.get();
 
         try
         {
-            if (payload.order_type == LIMIT)
+            if (qpayload->category == QueuePayload::Category::NEW)
             {
-                place_limit_order(payload_p);
-            }
-            else
-            {
-                place_market_order(payload_p);
+
+                NewOrderPayload &payload = *qpayload->payload;
+                if (payload.order_type == LIMIT)
+                {
+                    place_limit_order(payload_p);
+                }
+                else
+                {
+                    place_market_order(payload_p);
+                }
             }
         }
         catch (const std::string &e)
@@ -67,11 +72,11 @@ void FuturesEngine::start(Queue<OrderPayload> &queue)
     }
 }
 
-void FuturesEngine::handler(OrderPayload &payload)
+void FuturesEngine::handler(NewOrderPayload &payload)
 {
 }
 
-void FuturesEngine::place_limit_order(std::shared_ptr<OrderPayload> &payload)
+void FuturesEngine::place_limit_order(std::shared_ptr<NewOrderPayload> &payload)
 {
     try
     {
@@ -85,7 +90,7 @@ void FuturesEngine::place_limit_order(std::shared_ptr<OrderPayload> &payload)
     }
 }
 
-void FuturesEngine::place_market_order(std::shared_ptr<OrderPayload> &payload_p)
+void FuturesEngine::place_market_order(std::shared_ptr<NewOrderPayload> &payload_p)
 {
     auto &payload = *payload_p;
     OrderBook &orderbook = this->orderbooks.at(payload.instrument);
@@ -227,7 +232,6 @@ void FuturesEngine::handle_touched_orders(std::list<std::tuple<Order *, int>> &o
 
             if (order.payload->get_status() == CLOSED)
             {
-                // std::cout << "[touched] Closing order" << std::endl;
                 orderbook.rtrack(*orderbook.get_position(order.payload->id).entry_order);
             }
             else
@@ -240,6 +244,7 @@ void FuturesEngine::handle_touched_orders(std::list<std::tuple<Order *, int>> &o
 
 void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook) const
 {
+    auto &pos = orderbook.get_position(order.payload->id);
     if (order.payload->take_profit_price)
     {
         Order tp_order(order.payload, TAKE_PROFIT);

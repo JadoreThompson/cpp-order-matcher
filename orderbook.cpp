@@ -31,14 +31,14 @@ Position &OrderBook::get_position(const int id)
 }
 
 // Specifically used for ENTRY orders.
-Position &OrderBook::declare(std::shared_ptr<OrderPayload> payload)
+Position &OrderBook::declare(std::shared_ptr<NewOrderPayload> payload)
 {
     if (this->tracker.find(payload->id) != this->tracker.end())
     {
         throw std::string("Position already exists");
     }
 
-    this->tracker.emplace(payload->id, Position(new Order(payload, ENTRY)));
+    this->tracker.emplace(payload->id, new Order(payload, ENTRY));
     return this->tracker.at(payload->id);
 }
 
@@ -48,7 +48,6 @@ Position &OrderBook::track(Order &order)
     try
     {
         Position &position = this->tracker.at(order.payload->id);
-        // std::cout << "Tracking order with id " << std::to_string(order.payload->id) << std::endl;
 
         if (order.tag == ENTRY)
         {
@@ -110,7 +109,7 @@ void OrderBook::rtrack(Order &order)
                 remove_from_level(order);
                 delete position.entry_order;
             }
-            
+
             this->tracker.erase(order.payload->id);
         }
     }
