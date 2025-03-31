@@ -45,7 +45,6 @@ private:
 public:
     const OrderType order_type;
     const Side side;
-    // const std::string instrument;
     const int quantity;
     int standing_quantity;
     float entry_price;
@@ -77,14 +76,12 @@ public:
 class CancelOrderPayload : public BasePayload
 {
 public:
-    // const std::string instrument;
     CancelOrderPayload(const int id_, const std::string instrument_);
 };
 
 class ModifyOrderPayload : public BasePayload
 {
 public:
-    // const std::string instrument;
     const float stop_loss_price;
     const float take_profit_price;
     const float entry_price;

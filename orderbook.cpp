@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string>
 
-OrderBook::OrderBook(const std::string instrument_) : instrument(instrument_) {};
+OrderBook::OrderBook(const std::string instrument_, const float price_) : instrument(instrument_), price(price_) {};
 
 // Returns the book that the order should be matched against.
 std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order) const

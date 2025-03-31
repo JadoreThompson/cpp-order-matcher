@@ -13,11 +13,12 @@ private:
     std::map<int, Position> tracker;
 
 public:
+    float price;
     std::map<float, std::list<Order *>> bids;
     std::map<float, std::list<Order *>> asks;
     const std::string instrument;
     
-    OrderBook(const std::string instrument);
+    OrderBook(const std::string instrument_, const float price_ = NULL);
     
     std::map<float, std::list<Order *>> &get_book(const Order &order) const;
     

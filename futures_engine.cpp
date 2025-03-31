@@ -109,6 +109,7 @@ void FuturesEngine::place_market_order(std::shared_ptr<NewOrderPayload> &payload
         order.payload->set_status(NewOrderPayload::Status::FILLED);
         order.payload->set_filled_price(result.price);
         place_tp_sl(order, orderbook);
+        orderbook.price = result.price;
     }
     else
     {
@@ -120,7 +121,6 @@ void FuturesEngine::place_market_order(std::shared_ptr<NewOrderPayload> &payload
     }
 }
 
-// void FuturesEngine::cancel_order(BasePayload &payload) {
 void FuturesEngine::cancel_order(std::shared_ptr<BasePayload> &payload) {
     try {
         OrderBook &orderbook = this->orderbooks.at(payload->instrument);
@@ -134,7 +134,6 @@ void FuturesEngine::cancel_order(std::shared_ptr<BasePayload> &payload) {
     } catch(const std::string &e) { std::cout << e << std::endl; }
 }
 
-// void FuturesEngine::modify_order(ModifyOrderPayload &payload)
 void FuturesEngine::modify_order(std::shared_ptr<ModifyOrderPayload> &&payloadp)
 {
     auto &payload = *payloadp;

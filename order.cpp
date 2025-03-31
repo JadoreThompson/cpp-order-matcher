@@ -16,7 +16,6 @@ NewOrderPayload::NewOrderPayload(
     : BasePayload(id_, instrument_),
       order_type(order_type),
       side(side_),
-      //   instrument(instrument_),
       quantity(quantity_),
       standing_quantity(quantity_),
       entry_price(entry_price_),
@@ -72,7 +71,6 @@ ModifyOrderPayload::ModifyOrderPayload(
     const float take_profit_price_,
     const float limit_price_)
     : BasePayload(id_, instrument_),
-      //   instrument(instrument_),
       stop_loss_price(stop_loss_price_),
       take_profit_price(take_profit_price_),
       entry_price(limit_price_) {};

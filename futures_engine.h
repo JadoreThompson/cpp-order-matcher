@@ -47,10 +47,8 @@ public:
     
     void place_limit_order(std::shared_ptr<NewOrderPayload> &payload);
     
-    // void cancel_order(BasePayload &payload);
     void cancel_order(std::shared_ptr<BasePayload> &payload);
     
-    // void modify_order(ModifyOrderPayload &payload);
     void modify_order(std::shared_ptr<ModifyOrderPayload> &&payload);
 
     void close_order(std::shared_ptr<BasePayload> &payload);
