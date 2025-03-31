@@ -36,7 +36,7 @@ void NewOrderPayload::set_status(Status status_)
     this->status = status;
 }
 
-Status &NewOrderPayload::get_status()
+NewOrderPayload::Status &NewOrderPayload::get_status()
 {
     return this->status;
 }

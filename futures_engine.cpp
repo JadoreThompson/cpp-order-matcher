@@ -1,11 +1,11 @@
 #include <iostream>
-#include <thread>
+#include <memory>
 #include "futures_engine.h"
 #include "order.h"
 #include "orderbook.h"
 #include "utilities.h"
 #include "queue.h"
-#include "queue.cpp"
+// #include "queue.cpp"
 
 MatchResult::MatchResult(
     MatchResultType result_type_,
@@ -45,7 +45,6 @@ void FuturesEngine::start(Queue &queue)
 
     while (true)
     {
-        // std::shared_ptr<NewOrderPayload> payload_p = queue.get();
         std::shared_ptr<QueuePayload> qpayload = queue.get();
 
         try
@@ -53,14 +52,14 @@ void FuturesEngine::start(Queue &queue)
             if (qpayload->category == QueuePayload::Category::NEW)
             {
 
-                NewOrderPayload &payload = *qpayload->payload;
-                if (payload.order_type == LIMIT)
+                std::shared_ptr<NewOrderPayload> payload = std::dynamic_pointer_cast<NewOrderPayload>(qpayload->payload);
+                if (payload->order_type == NewOrderPayload::OrderType::LIMIT)
                 {
-                    place_limit_order(payload_p);
+                    place_limit_order(payload);
                 }
                 else
                 {
-                    place_market_order(payload_p);
+                    place_market_order(payload);
                 }
             }
         }
@@ -103,7 +102,7 @@ void FuturesEngine::place_market_order(std::shared_ptr<NewOrderPayload> &payload
     if (result_type == SUCCESS)
     {
         order.payload->standing_quantity = order.payload->quantity;
-        order.payload->set_status(FILLED);
+        order.payload->set_status(NewOrderPayload::Status::FILLED);
         order.payload->set_filled_price(result.price);
         place_tp_sl(order, orderbook);
     }
@@ -111,7 +110,7 @@ void FuturesEngine::place_market_order(std::shared_ptr<NewOrderPayload> &payload
     {
         if (result_type == PARTIAL)
         {
-            order.payload->set_status(PARTIALLY_FILLED);
+            order.payload->set_status(NewOrderPayload::Status::PARTIALLY_FILLED);
         }
         orderbook.push_order(order);
     }
@@ -121,11 +120,11 @@ MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
 {
     float price;
 
-    if (order.tag == ENTRY)
+    if (order.tag == Order::Tag::ENTRY)
     {
         price = order.payload->entry_price;
     }
-    else if (order.tag == STOP_LOSS)
+    else if (order.tag == Order::Tag::STOP_LOSS)
     {
         price = *(order.payload->stop_loss_price);
     }
@@ -200,11 +199,11 @@ void FuturesEngine::handle_filled_orders(std::list<std::tuple<Order *, int>> &or
     {
         auto &order = *std::get<0>(tup);
 
-        if (order.tag == ENTRY)
+        if (order.tag == Order::Tag::ENTRY)
         {
             orderbook.remove_from_level(order);
             order.payload->standing_quantity = order.payload->quantity;
-            order.payload->set_status(FILLED);
+            order.payload->set_status(NewOrderPayload::Status::FILLED);
             order.payload->set_filled_price(price);
             place_tp_sl(order, orderbook);
         }
@@ -222,21 +221,21 @@ void FuturesEngine::handle_touched_orders(std::list<std::tuple<Order *, int>> &o
     {
 
         auto &order = *std::get<0>(tup);
-        if (order.tag == ENTRY)
+        if (order.tag == Order::Tag::ENTRY)
         {
-            order.payload->set_status(PARTIALLY_FILLED);
+            order.payload->set_status(NewOrderPayload::Status::PARTIALLY_FILLED);
         }
         else
         {
             calc_upl(order, std::get<1>(tup), price);
 
-            if (order.payload->get_status() == CLOSED)
+            if (order.payload->get_status() == NewOrderPayload::Status::CLOSED)
             {
                 orderbook.rtrack(*orderbook.get_position(order.payload->id).entry_order);
             }
             else
             {
-                order.payload->set_status(PARTIALLY_CLOSED);
+                order.payload->set_status(NewOrderPayload::Status::PARTIALLY_CLOSED);
             }
         }
     }
@@ -247,14 +246,14 @@ void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook) const
     auto &pos = orderbook.get_position(order.payload->id);
     if (order.payload->take_profit_price)
     {
-        Order tp_order(order.payload, TAKE_PROFIT);
+        Order tp_order(order.payload, Order::Tag::TAKE_PROFIT);
         orderbook.track(tp_order);
         orderbook.push_order(tp_order);
     }
 
     if (order.payload->stop_loss_price)
     {
-        Order sl_order(order.payload, STOP_LOSS);
+        Order sl_order(order.payload, Order::Tag::STOP_LOSS);
         orderbook.track(sl_order);
         orderbook.push_order(sl_order);
     }

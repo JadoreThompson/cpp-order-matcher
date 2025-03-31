@@ -5,49 +5,42 @@
 #include <string>
 #include <memory>
 
-enum Side
-{
-    BID,
-    ASK
-};
-
-enum OrderType
-{
-    MARKET,
-    LIMIT
-};
-
-enum Status
-{
-    PENDING,
-    PARTIALLY_FILLED,
-    FILLED,
-    PARTIALLY_CLOSED,
-    CLOSED
-};
-
-enum Tag
-{
-    ENTRY,
-    STOP_LOSS,
-    TAKE_PROFIT,
-};
-
 struct BasePayload
 {
     const int id;
     BasePayload(const int id_) : id(id_) {};
+    virtual ~BasePayload() {};
 };
 
 struct NewOrderPayload : public BasePayload
 {
+    enum Side
+    {
+        BID,
+        ASK
+    };
+
+    enum OrderType
+    {
+        MARKET,
+        LIMIT
+    };
+
+    enum Status
+    {
+        PENDING,
+        PARTIALLY_FILLED,
+        FILLED,
+        PARTIALLY_CLOSED,
+        CLOSED
+    };
+
 private:
     Status status;
     float filled_price;
     bool filled_price_set;
 
 public:
-    // const int id;
     const OrderType order_type;
     const Side side;
     const std::string instrument;
@@ -92,8 +85,15 @@ struct QueuePayload
     QueuePayload(const Category category_, std::shared_ptr<BasePayload> payloadp_);
 };
 
-class Order
+struct Order
 {
+    enum Tag
+    {
+        ENTRY,
+        STOP_LOSS,
+        TAKE_PROFIT,
+    };
+
 public:
     const Tag tag;
     std::shared_ptr<NewOrderPayload> payload;

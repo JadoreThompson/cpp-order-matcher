@@ -35,7 +35,7 @@ private:
     std::map<const std::string, OrderBook> orderbooks;
 
 public:
-    void start(Queue<NewOrderPayload> &queue);
+    void start(Queue &queue);
     void handler(NewOrderPayload &payload);
     void place_market_order(std::shared_ptr<NewOrderPayload> &payload);
     void place_limit_order(std::shared_ptr<NewOrderPayload> &payload);

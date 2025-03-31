@@ -29,7 +29,7 @@ void calc_upl(Order &order, const float standing_quantity, const float price)
     const float pos_value = filled_price * order.payload->standing_quantity;
     float upl;
 
-    if (order.payload->side == ASK)
+    if (order.payload->side == NewOrderPayload::Side::ASK)
     {
         upl = calc_sell_pl(pos_value, filled_price, price);
     }
@@ -44,7 +44,7 @@ void calc_upl(Order &order, const float standing_quantity, const float price)
     {
         if (new_upl <= -pos_value)
         {
-            order.payload->set_status(CLOSED);
+            order.payload->set_status(NewOrderPayload::Status::CLOSED);
             order.payload->closed_price = price;
             order.payload->standing_quantity = order.payload->unrealised_pnl = 0;
             order.payload->realised_pnl += new_upl;
