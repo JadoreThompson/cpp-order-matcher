@@ -104,7 +104,7 @@ void OrderBook::rtrack(Order &order)
                 delete position.stop_loss_order;
             }
 
-            if (order.payload->get_status() == (NewOrderPayload::Status::PENDING || NewOrderPayload::Status::PARTIALLY_FILLED))
+            if (order.payload->get_status() == NewOrderPayload::Status::PENDING)
             {
                 remove_from_level(order);
                 delete position.entry_order;

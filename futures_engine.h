@@ -2,6 +2,7 @@
 #define _FUTURES_ENGINE_
 
 #include <tuple>
+#include <functional>
 #include "order.h"
 #include "orderbook.h"
 #include "queue.h"
@@ -46,9 +47,13 @@ public:
     
     void place_limit_order(std::shared_ptr<NewOrderPayload> &payload);
     
-    void modify_order(ModifyOrderPayload &payload);
+    // void cancel_order(BasePayload &payload);
+    void cancel_order(std::shared_ptr<BasePayload> &payload);
     
-    void cancel_order();
+    // void modify_order(ModifyOrderPayload &payload);
+    void modify_order(std::shared_ptr<ModifyOrderPayload> &&payload);
+
+    void close_order(std::shared_ptr<BasePayload> &payload);
     
     MatchResult match(Order &order, OrderBook &orderbook);
     

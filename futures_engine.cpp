@@ -1,5 +1,6 @@
 #include <iostream>
 #include <memory>
+#include <functional>
 #include "futures_engine.h"
 #include "order.h"
 #include "orderbook.h"
@@ -63,7 +64,7 @@ void FuturesEngine::start(Queue &queue)
             }
             else if (qpayload->category == QueuePayload::Category::MODIFY)
             {
-                modify_order(*std::dynamic_pointer_cast<ModifyOrderPayload>(qpayload->payload));
+                modify_order(std::dynamic_pointer_cast<ModifyOrderPayload>(qpayload->payload));
             }
         }
         catch (const std::string &e)
@@ -119,8 +120,24 @@ void FuturesEngine::place_market_order(std::shared_ptr<NewOrderPayload> &payload
     }
 }
 
-void FuturesEngine::modify_order(ModifyOrderPayload &payload)
+// void FuturesEngine::cancel_order(BasePayload &payload) {
+void FuturesEngine::cancel_order(std::shared_ptr<BasePayload> &payload) {
+    try {
+        OrderBook &orderbook = this->orderbooks.at(payload->instrument);
+        Position &pos = orderbook.get_position(payload->id);
+        
+        if (pos.entry_order->payload->get_status() != NewOrderPayload::Status::PENDING) {
+            throw std::string("Cancel can only be done on PENDING orders");
+        }
+
+        orderbook.rtrack(*pos.entry_order);
+    } catch(const std::string &e) { std::cout << e << std::endl; }
+}
+
+// void FuturesEngine::modify_order(ModifyOrderPayload &payload)
+void FuturesEngine::modify_order(std::shared_ptr<ModifyOrderPayload> &&payloadp)
 {
+    auto &payload = *payloadp;
     OrderBook &orderbook = this->orderbooks.at(payload.instrument);    
     Position &position = orderbook.get_position(payload.id);
         
@@ -186,6 +203,15 @@ void FuturesEngine::modify_order(ModifyOrderPayload &payload)
         orderbook.push_order(*position.entry_order);
     }
 }
+
+void FuturesEngine::close_order(std::shared_ptr<BasePayload> &payload) {
+    try {
+        OrderBook &orderbook = this->orderbooks.at(payload->instrument);
+        Position &pos = orderbook.get_position(payload->id);
+        orderbook.rtrack(*pos.entry_order);
+    } catch(const std::string &e) { std::cout << e << std::endl; }
+}
+
 
 MatchResult FuturesEngine::match(Order &order, OrderBook &orderbook)
 {
