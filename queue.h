@@ -16,14 +16,10 @@ private:
     void unlock();
 
 public:
-    // template <typename X, typename... Args>
-    // void push(Args &&...args);
-    // template <typename... Args>
     void push(std::shared_ptr<QueuePayload> value);
-    // void push(T value);
-    // std::shared_ptr<T> get();
+
     std::shared_ptr<QueuePayload> get();
-    // std::shared_ptr<T> get_nowait();
+
     std::shared_ptr<QueuePayload> get_nowait();
 };
 #endif

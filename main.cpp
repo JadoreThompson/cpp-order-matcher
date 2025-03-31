@@ -6,14 +6,12 @@
 #include "orderbook.h"
 #include "order.h"
 #include "queue.h"
-// #include "queue.cpp"
 
 void handle_engine(FuturesEngine &engine, Queue &queue);
 
 int main()
 {
     FuturesEngine engine;
-    // Queue<OrderPayload> queue;
     Queue queue;
     int id_counter = 0;
     const NewOrderPayload::Side sides[] = {NewOrderPayload::Side::BID, NewOrderPayload::Side::ASK};
@@ -34,8 +32,18 @@ int main()
             std::rand() % 50 + 1);
 
         queue.push(std::make_shared<QueuePayload>(QueuePayload::Category::NEW, p));
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        std::cout << "Next Payload ID: " << id_counter + 1 << std::endl;
+
+        if (id_counter % 5 == 0)
+        {
+            queue.push(
+                std::make_shared<QueuePayload>(
+                    QueuePayload::Category::MODIFY,
+                    std::make_shared<ModifyOrderPayload>(
+                        id_counter,
+                        "APPL",
+                        float(std::rand() % 50 + 1),
+                        float(std::rand() % 50 + 1))));
+        }
     }
 
     engine_thread.join();

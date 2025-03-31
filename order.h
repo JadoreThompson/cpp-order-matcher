@@ -62,11 +62,29 @@ public:
         float entry_price_,
         float *stop_loss_price_ = nullptr,
         float *take_profit_price_ = nullptr);
+    
     void set_status(Status status_);
+    
     Status &get_status();
 
     void set_filled_price(float price);
+
     float get_filled_price();
+};
+
+class ModifyOrderPayload : public BasePayload
+{
+public:
+    const std::string instrument;
+    const float stop_loss_price;
+    const float take_profit_price;
+    const float entry_price;
+    ModifyOrderPayload(
+        const int id_,
+        const std::string ticker_,
+        const float stop_loss_price_ = NULL,
+        const float take_profit_price_ = NULL,
+        const float limit_price_ = NULL);
 };
 
 struct QueuePayload
@@ -81,7 +99,6 @@ struct QueuePayload
 
     const Category category;
     std::shared_ptr<BasePayload> payload;
-
     QueuePayload(const Category category_, std::shared_ptr<BasePayload> payloadp_);
 };
 

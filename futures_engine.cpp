@@ -5,7 +5,6 @@
 #include "orderbook.h"
 #include "utilities.h"
 #include "queue.h"
-// #include "queue.cpp"
 
 MatchResult::MatchResult(
     MatchResultType result_type_,
@@ -62,6 +61,10 @@ void FuturesEngine::start(Queue &queue)
                     place_market_order(payload);
                 }
             }
+            else if (qpayload->category == QueuePayload::Category::MODIFY)
+            {
+                modify_order(*std::dynamic_pointer_cast<ModifyOrderPayload>(qpayload->payload));
+            }
         }
         catch (const std::string &e)
         {
@@ -113,6 +116,74 @@ void FuturesEngine::place_market_order(std::shared_ptr<NewOrderPayload> &payload
             order.payload->set_status(NewOrderPayload::Status::PARTIALLY_FILLED);
         }
         orderbook.push_order(order);
+    }
+}
+
+void FuturesEngine::modify_order(ModifyOrderPayload &payload)
+{
+    OrderBook &orderbook = this->orderbooks.at(payload.instrument);    
+    Position &position = orderbook.get_position(payload.id);
+        
+    if (payload.stop_loss_price == NULL)
+    {
+        if (position.stop_loss_order)
+        {
+            orderbook.remove_from_level(*position.stop_loss_order);
+        }
+    }
+    else
+    {
+        if (position.entry_order->payload->stop_loss_price != nullptr)
+        {
+            if (payload.stop_loss_price != *position.entry_order->payload->stop_loss_price)
+            {
+                orderbook.remove_from_level(*position.stop_loss_order);
+                delete position.stop_loss_order;
+            }
+
+            position.entry_order->payload->stop_loss_price = const_cast<float *>(&payload.stop_loss_price);
+            position.stop_loss_order = new Order(position.entry_order->payload, Order::Tag::STOP_LOSS);
+            orderbook.push_order(*position.stop_loss_order);
+        }
+    }
+
+    if (payload.take_profit_price == NULL)
+    {
+        if (position.take_profit_order)
+        {
+            orderbook.remove_from_level(*position.take_profit_order);
+        }
+    }
+    else
+    {
+        if (position.entry_order->payload->take_profit_price != nullptr)
+        {
+            if (payload.take_profit_price != *position.entry_order->payload->take_profit_price)
+            {
+                orderbook.remove_from_level(*position.take_profit_order);
+                delete position.take_profit_order;
+            }
+
+            position.entry_order->payload->take_profit_price = const_cast<float *>(&payload.take_profit_price);
+            position.take_profit_order = new Order(position.entry_order->payload, Order::Tag::TAKE_PROFIT);
+            orderbook.push_order(*position.take_profit_order);
+        }
+    }
+
+    if (
+        payload.entry_price == NULL ||
+        position.entry_order->payload->order_type != NewOrderPayload::OrderType::LIMIT)
+    {        
+        return;
+    }
+
+    if (payload.entry_price != position.entry_order->payload->entry_price)
+    {
+        orderbook.remove_from_level(*position.entry_order);
+        delete position.entry_order;
+        position.entry_order->payload->entry_price = payload.entry_price;
+        position.entry_order = new Order(position.entry_order->payload, Order::Tag::ENTRY);
+        orderbook.push_order(*position.entry_order);
     }
 }
 

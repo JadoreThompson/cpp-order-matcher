@@ -1,7 +1,9 @@
 # **Overview**
-An implementation of a FIFO matching engine in C++ 14
+An implementation of a FIFO matching engine in C++ 14. This projects serves as the learning
+platform for my C++ knowledge.
+
 # **Requirements**
-A chosen compiler e.g. g++
+A chosen compiler e.g. g++.
 
 # **Installation**
 ```

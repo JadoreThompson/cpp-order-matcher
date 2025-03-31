@@ -62,6 +62,18 @@ float NewOrderPayload::get_filled_price()
     return this->filled_price;
 }
 
+ModifyOrderPayload::ModifyOrderPayload(
+    const int id_,
+    const std::string ticker_,
+    const float stop_loss_price_,
+    const float take_profit_price_,
+    const float limit_price_)
+    : BasePayload(id_),
+      instrument(ticker_),
+      stop_loss_price(stop_loss_price_),
+      take_profit_price(take_profit_price_),
+      entry_price(limit_price_) {};
+
 Order::Order(std::shared_ptr<NewOrderPayload> payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
 
 bool Order::operator==(const Order &other) const
