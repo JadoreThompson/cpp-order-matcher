@@ -22,6 +22,12 @@ struct NewOrderPayload : public BasePayload
         ASK
     };
 
+    enum ExecutionType
+    {
+        GTC,
+        FOK
+    };
+
     enum OrderType
     {
         MARKET,
@@ -43,6 +49,7 @@ private:
     bool filled_price_set;
 
 public:
+    const ExecutionType exec_type;
     const OrderType order_type;
     const Side side;
     const int quantity;
@@ -56,6 +63,7 @@ public:
 
     NewOrderPayload(
         const int id_,
+        const ExecutionType exec_type_ = GTC,
         const OrderType order_type_,
         const Side side_,
         const std::string instrument,

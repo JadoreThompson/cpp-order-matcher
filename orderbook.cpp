@@ -5,6 +5,13 @@
 #include <stdexcept>
 #include <string>
 
+OrderBookEmpty::OrderBookEmpty(const char *msg_) : msg(msg_) {};
+
+const char *OrderBookEmpty::what()
+{
+    return this->msg;
+}
+
 OrderBook::OrderBook(const std::string instrument_, const float price_) : instrument(instrument_), price(price_) {};
 
 // Returns the book that the order should be matched against.
@@ -119,20 +126,28 @@ void OrderBook::rtrack(Order &order)
     }
 }
 
-void OrderBook::remove_from_level(Order &order)
+float OrderBook::best_price(NewOrderPayload::Side &&side)
 {
-    auto &book = get_book(order);
+    if (side == NewOrderPayload::Side::ASK)
+    {
+        float best_price = this->asks.begin()->first;
+        if (best_price == NULL)
+        {
+            return this->price;
+        }
 
-    if (order.tag == Order::Tag::ENTRY)
-    {
-        book[order.payload->entry_price].remove(&order);
+        return best_price;
     }
-    else
+
+    if (side == NewOrderPayload::Side::BID)
     {
-        book[*((order.tag == Order::Tag::TAKE_PROFIT)
-                   ? order.payload->take_profit_price
-                   : order.payload->stop_loss_price)]
-            .remove(&order);
+        float best_price = this->bids.begin()->first;
+        if (best_price == NULL)
+        {
+            return this->price;
+        }
+
+        return best_price;
     }
 }
 
@@ -151,6 +166,23 @@ void OrderBook::push_order(Order &order)
                 ? order.payload->take_profit_price
                 : order.payload->stop_loss_price;
         book[*price].push_back(&order);
+    }
+}
+
+void OrderBook::remove_from_level(Order &order)
+{
+    auto &book = get_book(order);
+
+    if (order.tag == Order::Tag::ENTRY)
+    {
+        book[order.payload->entry_price].remove(&order);
+    }
+    else
+    {
+        book[*((order.tag == Order::Tag::TAKE_PROFIT)
+                   ? order.payload->take_profit_price
+                   : order.payload->stop_loss_price)]
+            .remove(&order);
     }
 }
 

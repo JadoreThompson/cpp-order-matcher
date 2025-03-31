@@ -40,6 +40,7 @@ int main()
                     QueuePayload::Category::MODIFY,
                     std::make_shared<ModifyOrderPayload>(
                         id_counter,
+                        NewOrderPayload::ExecutionType::GTC,
                         "APPL",
                         float(std::rand() % 50 + 1),
                         float(std::rand() % 50 + 1))));

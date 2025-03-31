@@ -25,11 +25,11 @@ public:
 
     MatchResult(MatchResultType result_type_,
                 int price = -1);
-    
+
     MatchResult();
-    
+
     void set_result_type(MatchResultType result_type);
-    
+
     MatchResultType &get_result_type();
 };
 
@@ -40,27 +40,31 @@ private:
 
 public:
     void start(Queue &queue);
-    
+
     void handler(NewOrderPayload &payload);
-    
-    void place_market_order(std::shared_ptr<NewOrderPayload> &payload);
-    
+
+    void place_gtc_market_order(std::shared_ptr<NewOrderPayload> &payload);
+
+    void place_fok_market_order(std::shared_ptr<NewOrderPayload> &payload);
+
     void place_limit_order(std::shared_ptr<NewOrderPayload> &payload);
-    
+
     void cancel_order(std::shared_ptr<BasePayload> &payload);
-    
+
     void modify_order(std::shared_ptr<ModifyOrderPayload> &&payload);
 
     void close_order(std::shared_ptr<BasePayload> &payload);
-    
-    MatchResult match(Order &order, OrderBook &orderbook);
-    
+
+    MatchResult match_gtc(Order &order, OrderBook &orderbook);
+
+    MatchResult match_fok(Order &order, OrderBook &orderbook);
+
     MatchResult gen_match_result(const float og_standing_quantity, Order &order, const float price);
-    
+
     void handle_filled_orders(std::list<std::tuple<Order *, int>> &orders, OrderBook &orderbook, const float price);
-    
+
     void handle_touched_orders(std::list<std::tuple<Order *, int>> &orders, OrderBook &orderbook, const float price);
-    
+
     void place_tp_sl(Order &order, OrderBook &orderbook) const;
 };
 #endif
