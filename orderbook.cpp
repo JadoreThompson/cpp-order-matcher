@@ -141,7 +141,7 @@ float OrderBook::best_price(NewOrderPayload::Side &&side)
 
     if (side == NewOrderPayload::Side::BID)
     {
-        float best_price = this->bids.begin()->first;
+        float best_price = this->bids.rbegin()->first;
         if (best_price == NULL)
         {
             return this->price;
