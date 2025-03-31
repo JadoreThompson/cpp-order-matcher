@@ -6,17 +6,17 @@ QueuePayload::QueuePayload(const Category category_, std::shared_ptr<BasePayload
 
 NewOrderPayload::NewOrderPayload(
     const int id_,
-    const ExecutionType exec_type_,
+    const std::string instrument_,
     const OrderType order_type_,
     const Side side_,
-    const std::string instrument_,
     const int quantity_,
     float entry_price_,
+    const ExecutionType exec_type_,
     float *stop_loss_price_,
     float *take_profit_price_)
     : BasePayload(id_, instrument_),
-        exec_type(exec_type_),
-      order_type(order_type),
+      exec_type(exec_type_),
+      order_type(order_type_),
       side(side_),
       quantity(quantity_),
       standing_quantity(quantity_),

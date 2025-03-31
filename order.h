@@ -63,12 +63,12 @@ public:
 
     NewOrderPayload(
         const int id_,
-        const ExecutionType exec_type_ = GTC,
+        const std::string instrument,
         const OrderType order_type_,
         const Side side_,
-        const std::string instrument,
         const int quantity_,
         float entry_price_,
+        const ExecutionType exec_type_ = GTC,
         float *stop_loss_price_ = nullptr,
         float *take_profit_price_ = nullptr);
 

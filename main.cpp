@@ -25,26 +25,26 @@ int main()
 
         std::shared_ptr<NewOrderPayload> p = std::make_shared<NewOrderPayload>(
             id_counter,
+            "APPL",
             NewOrderPayload::OrderType::MARKET,
             sides[std::rand() % 2],
-            "APPL",
             std::rand() % 10,
-            std::rand() % 50 + 1);
+            std::rand() % 50 + 1,
+            NewOrderPayload::ExecutionType::FOK);
 
         queue.push(std::make_shared<QueuePayload>(QueuePayload::Category::NEW, p));
 
-        if (id_counter % 5 == 0)
-        {
-            queue.push(
-                std::make_shared<QueuePayload>(
-                    QueuePayload::Category::MODIFY,
-                    std::make_shared<ModifyOrderPayload>(
-                        id_counter,
-                        NewOrderPayload::ExecutionType::GTC,
-                        "APPL",
-                        float(std::rand() % 50 + 1),
-                        float(std::rand() % 50 + 1))));
-        }
+        // if (id_counter % 5 == 0)
+        // {
+        //     queue.push(
+        //         std::make_shared<QueuePayload>(
+        //             QueuePayload::Category::MODIFY,
+        //             std::make_shared<ModifyOrderPayload>(
+        //                 id_counter,
+        //                 "APPL",
+        //                 float(std::rand() % 50 + 1),
+        //                 float(std::rand() % 50 + 1))));
+        // }
     }
 
     engine_thread.join();

@@ -29,7 +29,7 @@ public:
     std::map<float, std::list<Order *>> asks;
     const std::string instrument;
 
-    OrderBook(const std::string instrument_, const float price_ = NULL);
+    OrderBook(const std::string instrument_, const float price_);
 
     std::map<float, std::list<Order *>> &get_book(const Order &order) const;
 

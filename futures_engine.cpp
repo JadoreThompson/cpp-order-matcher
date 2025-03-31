@@ -41,7 +41,7 @@ MatchResultType &MatchResult::get_result_type()
 
 void FuturesEngine::start(Queue &queue)
 {
-    this->orderbooks.emplace("APPL", "APPL");
+    this->orderbooks.emplace("APPL", OrderBook("APPL", 50.0));
 
     while (true)
     {
@@ -59,7 +59,15 @@ void FuturesEngine::start(Queue &queue)
                 }
                 else
                 {
-                    place_gtc_market_order(payload);
+                    if (payload->exec_type == NewOrderPayload::ExecutionType::GTC)
+                    {
+
+                        place_gtc_market_order(payload);
+                    }
+                    else
+                    {
+                        place_fok_market_order(payload);
+                    }
                 }
             }
             else if (qpayload->category == QueuePayload::Category::MODIFY)
@@ -103,7 +111,7 @@ void FuturesEngine::place_gtc_market_order(std::shared_ptr<NewOrderPayload> &pay
     MatchResult result = match_gtc(order, orderbook);
     MatchResultType &result_type = result.get_result_type();
 
-    if (result_type == SUCCESS)
+    if (result.get_result_type() == SUCCESS)
     {
         order.payload->standing_quantity = order.payload->quantity;
         order.payload->set_status(NewOrderPayload::Status::FILLED);
@@ -121,14 +129,25 @@ void FuturesEngine::place_gtc_market_order(std::shared_ptr<NewOrderPayload> &pay
     }
 }
 
-void FuturesEngine::place_fok_market_order(std::shared_ptr<NewOrderPayload> &payload_p) {
-    auto &payload = *payload_p;
-    OrderBook &orderbook = this->orderbooks.at(payload.instrument);
+void FuturesEngine::place_fok_market_order(std::shared_ptr<NewOrderPayload> &payload_p)
+{
+    OrderBook &orderbook = this->orderbooks.at(payload_p->instrument);
     Position &position = orderbook.declare(payload_p);
-
-    Order &order = *position.entry_order;
-    MatchResult result = match_fok(order, orderbook);
+    MatchResult result = match_fok(position.entry_order, orderbook);
     MatchResultType &result_type = result.get_result_type();
+
+    if (result.get_result_type() == SUCCESS)
+    {
+        payload_p->standing_quantity = payload_p->quantity;
+        payload_p->set_status(NewOrderPayload::Status::FILLED);
+        payload_p->set_filled_price(result.price);
+        place_tp_sl(*position.entry_order, orderbook);
+        orderbook.price = result.price;
+    }
+    else
+    {
+        orderbook.rtrack(*position.entry_order);
+    }
 }
 
 void FuturesEngine::cancel_order(std::shared_ptr<BasePayload> &payload)
@@ -252,8 +271,8 @@ MatchResult FuturesEngine::match_gtc(Order &order, OrderBook &orderbook)
     }
 
     const int og_standing_quantity = order.payload->standing_quantity;
-    std::list<std::tuple<Order *, int>> touched;
-    std::list<std::tuple<Order *, int>> filled;
+    std::list<std::tuple<Order *&, int>> touched;
+    std::list<std::tuple<Order *&, int>> filled;
 
     for (auto &ex_order_p : orderbook.get_book(order)[price])
     {
@@ -265,11 +284,11 @@ MatchResult FuturesEngine::match_gtc(Order &order, OrderBook &orderbook)
 
         if (ex_order.payload->standing_quantity == 0)
         {
-            filled.push_back(std::tuple<Order *, int>{ex_order_p, ex_order_pre_standing_quantity});
+            filled.push_back(std::tuple<Order *&, int>{ex_order_p, ex_order_pre_standing_quantity});
         }
         else
         {
-            touched.push_back(std::tuple<Order *, int>{ex_order_p, ex_order_pre_standing_quantity});
+            touched.push_back(std::tuple<Order *&, int>{ex_order_p, ex_order_pre_standing_quantity});
         }
 
         if (order.payload->standing_quantity == 0)
@@ -290,16 +309,59 @@ MatchResult FuturesEngine::match_gtc(Order &order, OrderBook &orderbook)
     return gen_match_result(og_standing_quantity, order, price);
 }
 
-// Only to
-MatchResult FuturesEngine::match_fok(Order &order, OrderBook &orderbook) {
-    float price = order.payload->entry_price;
-    const int og_standing_quantity = order.payload->standing_quantity;   
-    auto &book = orderbook.get_book(order);
+// Only to be used on Tag::ENTRY orders
+MatchResult FuturesEngine::match_fok(Order *&order, OrderBook &orderbook)
+{
+    const int og_standing_quantity = order->payload->standing_quantity;
+    auto &book = orderbook.get_book(*order);
 
-    std::list<std::tuple<int, Order &>> touched;
-    std::list<std::tuple<int, Order &>> filled;
+    std::list<std::tuple<Order *&, int, int>> touched_order_coll;
 
-    for (auto & order: )
+    for (auto &ex_order : book[order->payload->entry_price])
+    {
+        const int ex_order_pre_standing_quantity = ex_order->payload->standing_quantity;
+        const int reduce_amount = std::min(order->payload->standing_quantity, ex_order_pre_standing_quantity);
+        order->payload->standing_quantity -= reduce_amount;
+        touched_order_coll.push_back(std::tuple<Order *&, int, int>{ex_order, ex_order_pre_standing_quantity, reduce_amount});
+
+        if (order->payload->standing_quantity == 0)
+        {
+            break;
+        }
+    }
+
+    if (order->payload->standing_quantity == 0)
+    {
+        std::list<std::tuple<Order *&, int>> touched;
+        std::list<std::tuple<Order *&, int>> filled;
+
+        for (auto &tup : touched_order_coll)
+        {
+            Order *&ex_order = std::get<0>(tup);
+            ex_order->payload->standing_quantity -= std::get<2>(tup);
+
+            if (ex_order->payload->standing_quantity == 0)
+            {
+                filled.push_back(std::tuple<Order *&, int>{ex_order, std::get<1>(tup)});
+            }
+            else
+            {
+                touched.push_back(std::tuple<Order *&, int>{ex_order, std::get<1>(tup)});
+            }
+        }
+
+        if (touched.size() > 0)
+        {
+            handle_touched_orders(touched, orderbook, order->payload->entry_price);
+        }
+
+        if (filled.size() > 0)
+        {
+            handle_filled_orders(filled, orderbook, order->payload->entry_price);
+        }
+    }
+
+    return gen_match_result(og_standing_quantity, *order, order->payload->entry_price);
 }
 
 MatchResult FuturesEngine::gen_match_result(const float og_standing_quantity, Order &order, const float price)
@@ -323,11 +385,11 @@ MatchResult FuturesEngine::gen_match_result(const float og_standing_quantity, Or
     return result;
 }
 
-void FuturesEngine::handle_filled_orders(std::list<std::tuple<Order *, int>> &orders, OrderBook &orderbook, const float price)
+void FuturesEngine::handle_filled_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price)
 {
     for (auto &tup : orders)
     {
-        auto &order = *std::get<0>(tup);
+        Order &order = *std::get<0>(tup);
 
         if (order.tag == Order::Tag::ENTRY)
         {
@@ -345,12 +407,12 @@ void FuturesEngine::handle_filled_orders(std::list<std::tuple<Order *, int>> &or
     }
 }
 
-void FuturesEngine::handle_touched_orders(std::list<std::tuple<Order *, int>> &orders, OrderBook &orderbook, const float price)
+void FuturesEngine::handle_touched_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price)
 {
     for (auto &tup : orders)
     {
 
-        auto &order = *std::get<0>(tup);
+        Order &order = *std::get<0>(tup);
         if (order.tag == Order::Tag::ENTRY)
         {
             order.payload->set_status(NewOrderPayload::Status::PARTIALLY_FILLED);
