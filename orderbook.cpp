@@ -1,9 +1,7 @@
+#include <iostream>
+#include <stdexcept>
 #include "orderbook.h"
 #include "order.h"
-#include <iostream>
-#include <map>
-#include <stdexcept>
-#include <string>
 
 OrderBookEmpty::OrderBookEmpty(const char *msg_) : msg(msg_) {};
 
