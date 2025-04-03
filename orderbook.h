@@ -11,25 +11,29 @@
 class OrderBookEmpty : public std::exception
 {
 private:
-    const char *msg;
+    const char *m_msg;
 
 public:
-    OrderBookEmpty(const char *msg_);
+    OrderBookEmpty(const char *msg);
     const char *what();
 };
 
 class OrderBook
 {
 private:
-    std::map<int, Position> tracker;
+    std::map<int, Position> m_tracker;
+    std::map<float, std::list<Order *>> m_bids;
+    std::map<float, std::list<Order *>> m_asks;
+    std::list<Order *> m_trailing_stop_loss_orders;
+    float m_last_price;
+    float m_price;
+
+    void _update_trailing_stop_loss_orders(float price);
 
 public:
-    float price;
-    std::map<float, std::list<Order *>> bids;
-    std::map<float, std::list<Order *>> asks;
-    const std::string instrument;
+    const std::string m_instrument;
 
-    OrderBook(const std::string instrument_, const float price_);
+    OrderBook(const std::string instrument, const float price);
 
     std::map<float, std::list<Order *>> &get_book(const Order &order) const;
 
@@ -40,6 +44,10 @@ public:
     void rtrack(Order &order);
 
     Position &get_position(const int id);
+
+    float get_price();
+
+    void set_price(float price);
 
     float best_price(NewOrderPayload::Side &&side);
 

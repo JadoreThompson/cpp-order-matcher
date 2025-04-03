@@ -2,89 +2,100 @@
 #include <string>
 #include <iostream>
 
-QueuePayload::QueuePayload(const Category category_, std::shared_ptr<BasePayload> payloadp_) : category(category_), payload(payloadp_) {};
+BasePayload::BasePayload(const int id, const std::string instrument)
+    : m_id(id), m_instrument(instrument) {};
+
+StopLossOrder::StopLossOrder(float price, float distance) : m_price(price), m_distance(distance) {};
 
 NewOrderPayload::NewOrderPayload(
-    const int id_,
-    const std::string instrument_,
-    const OrderType order_type_,
-    const Side side_,
-    const int quantity_,
-    float entry_price_,
-    const ExecutionType exec_type_,
-    float *stop_loss_price_,
-    float *take_profit_price_)
-    : BasePayload(id_, instrument_),
-      exec_type(exec_type_),
-      order_type(order_type_),
-      side(side_),
-      quantity(quantity_),
-      standing_quantity(quantity_),
-      entry_price(entry_price_),
-      stop_loss_price(stop_loss_price_),
-      take_profit_price(take_profit_price_),
-      realised_pnl(0.0),
-      unrealised_pnl(0.0),
-      status(PENDING),
-      filled_price_set(false) {};
+    const int id,
+    const std::string instrument,
+    const OrderType order_type,
+    const Side side,
+    const int quantity,
+    float entry_price,
+    const ExecutionType exec_type,
+    // float stop_loss_price,
+    // StopLossOrder stop_loss_order,
+    std::unique_ptr<StopLossOrder> stop_loss_order,
+    float take_profit_price)
+    : BasePayload(id, instrument),
+      m_exec_type(exec_type),
+      m_order_type(order_type),
+      m_side(side),
+      m_quantity(quantity),
+      m_standing_quantity(quantity),
+      m_entry_price(entry_price),
+      //   m_stop_loss_price(stop_loss_price),
+      //   m_stop_loss(std::make_shared<StopLossOrder>(stop_loss)),
+      m_stop_loss_order(std::move(stop_loss_order)),
+      m_take_profit_price(take_profit_price),
+      m_realised_pnl(0.0),
+      m_unrealised_pnl(0.0),
+      m_status(PENDING),
+      m_filled_price_set(false) {};
 
-void NewOrderPayload::set_status(Status status_)
+void NewOrderPayload::set_status(Status status)
 {
-    if (this->status == CLOSED)
+    if (this->m_status == CLOSED)
     {
         throw std::string("Cannot set status on payload with status CLOSED");
     }
-    this->status = status;
+    this->m_status = status;
 }
 
 NewOrderPayload::Status &NewOrderPayload::get_status()
 {
-    return this->status;
+    return this->m_status;
 }
 
 void NewOrderPayload::set_filled_price(float price)
 {
-    if (this->filled_price_set)
+    if (this->m_filled_price_set)
     {
         throw std::string("Cannot set filled price on payload once already set");
     }
 
-    this->filled_price = price;
-    this->filled_price_set = true;
+    this->m_filled_price = price;
+    this->m_filled_price_set = true;
 }
 
 float NewOrderPayload::get_filled_price()
 {
-    if (!this->filled_price_set)
+    if (!this->m_filled_price_set)
     {
         throw std::string("Filled price not set");
     }
 
-    return this->filled_price;
+    return this->m_filled_price;
 }
 
-CancelOrderPayload::CancelOrderPayload(const int id_, const std::string instrument_)
-    : BasePayload(id_, instrument_) {};
+CancelOrderPayload::CancelOrderPayload(const int id, const std::string instrument)
+    : BasePayload(id, instrument) {};
 
 ModifyOrderPayload::ModifyOrderPayload(
-    const int id_,
-    const std::string instrument_,
-    const float stop_loss_price_,
-    const float take_profit_price_,
-    const float limit_price_)
-    : BasePayload(id_, instrument_),
-      stop_loss_price(stop_loss_price_),
-      take_profit_price(take_profit_price_),
-      entry_price(limit_price_) {};
+    const int id,
+    const std::string instrument,
+    const float stop_loss_price,
+    const float take_profit_price,
+    const float limit_price)
+    : BasePayload(id, instrument),
+      m_stop_loss_price(stop_loss_price),
+      m_take_profit_price(take_profit_price),
+      m_entry_price(limit_price) {};
 
-Order::Order(std::shared_ptr<NewOrderPayload> payload_, const Tag tag_) : payload(payload_), tag(tag_) {};
+QueuePayload::QueuePayload(
+    const Category category, std::shared_ptr<BasePayload> payloadp)
+    : m_category(category), m_payload(payloadp) {};
+
+Order::Order(std::shared_ptr<NewOrderPayload> payload, const Tag tag) : m_payload(payload), m_tag(tag) {};
 
 bool Order::operator==(const Order &other) const
 {
-    return this->payload->id == other.payload->id;
+    return this->m_payload->m_id == other.m_payload->m_id;
 }
 
-Position::Position(Order *entry_order_)
-    : entry_order(entry_order_),
-      stop_loss_order(nullptr),
-      take_profit_order(nullptr) {};
+Position::Position(Order *entry_order)
+    : m_entry_order(entry_order),
+      m_stop_loss_order(nullptr),
+      m_take_profit_order(nullptr) {};

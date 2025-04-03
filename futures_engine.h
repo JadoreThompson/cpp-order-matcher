@@ -17,20 +17,20 @@ enum MatchResultType
 struct MatchResult
 {
 private:
-    MatchResultType result_type;
-    bool result_set;
+    MatchResultType m_result_type;
+    bool m_result_set;
 
 public:
-    int price;
+    int m_price;
 
-    MatchResult(MatchResultType result_type_,
+    MatchResult(MatchResultType result_type,
                 int price = -1);
 
     MatchResult();
 
     void set_result_type(MatchResultType result_type);
 
-    MatchResultType &get_result_type();
+    const MatchResultType &get_result_type() const;
 };
 
 class FuturesEngine
@@ -55,11 +55,11 @@ public:
 
     void close_order(std::shared_ptr<BasePayload> &payload);
 
-    MatchResult match_gtc(Order &order, OrderBook &orderbook);
+    const MatchResult match_gtc(Order &order, OrderBook &orderbook);
 
-    MatchResult match_fok(Order *&order, OrderBook &orderbook);
+    const MatchResult match_fok(Order *&order, OrderBook &orderbook);
 
-    MatchResult gen_match_result(const float og_standing_quantity, Order &order, const float price);
+    const MatchResult gen_match_result(const float og_standing_quantity, Order &order, const float price);
 
     void handle_filled_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price);
 
