@@ -140,6 +140,7 @@ void FuturesEngine::place_fok_market_order(std::shared_ptr<NewOrderPayload> &pay
         payload_p->m_standing_quantity = payload_p->m_quantity;
         payload_p->set_status(NewOrderPayload::Status::FILLED);
         payload_p->set_filled_price(result.m_price);
+        std::cout << "FOK order filled" << std::endl;
         place_tp_sl(*position.m_entry_order, orderbook);
         orderbook.set_price(result.m_price);
     }
@@ -395,6 +396,7 @@ const MatchResult FuturesEngine::gen_match_result(const float og_standing_quanti
 
 void FuturesEngine::handle_filled_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price)
 {
+    std::cout << "Handling filled orders" << std::endl;
     for (auto &tup : orders)
     {
         Order &order = *std::get<0>(tup);
@@ -441,7 +443,7 @@ void FuturesEngine::handle_touched_orders(std::list<std::tuple<Order *&, int>> &
     }
 }
 
-void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook) const
+void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook)
 {
     Position &pos = orderbook.get_position(order.m_payload->m_id);
     if (order.m_payload->m_take_profit_price != 0.0f)

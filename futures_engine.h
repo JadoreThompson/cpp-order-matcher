@@ -65,6 +65,6 @@ public:
 
     void handle_touched_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price);
 
-    void place_tp_sl(Order &order, OrderBook &orderbook) const;
+    void place_tp_sl(Order &order, OrderBook &orderbook);
 };
 #endif
