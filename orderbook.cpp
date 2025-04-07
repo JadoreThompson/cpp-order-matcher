@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include "orderbook.h"
 #include "order.h"
 
@@ -84,44 +85,37 @@ Position &OrderBook::track(Order &order)
  */
 void OrderBook::rtrack(Order &order)
 {
-    try
+    Position &position = this->m_tracker.at(order.m_payload->m_id);
+
+    if (order.m_tag == Order::Tag::STOP_LOSS)
     {
-        Position &position = this->m_tracker.at(order.m_payload->m_id);
-
-        if (order.m_tag == Order::Tag::STOP_LOSS)
-        {
-            position.m_stop_loss_order = nullptr;
-        }
-        else if (order.m_tag == Order::Tag::TAKE_PROFIT)
-        {
-            position.m_take_profit_order = nullptr;
-        }
-        else
-        {
-            if (position.m_take_profit_order)
-            {
-                remove_from_level(*position.m_take_profit_order);
-                delete position.m_take_profit_order;
-            }
-
-            if (position.m_stop_loss_order)
-            {
-                remove_from_level(*position.m_stop_loss_order);
-                delete position.m_stop_loss_order;
-            }
-
-            if (order.m_payload->get_status() == NewOrderPayload::Status::PENDING)
-            {
-                remove_from_level(order);
-                delete position.m_entry_order;
-            }
-
-            this->m_tracker.erase(order.m_payload->m_id);
-        }
+        position.m_stop_loss_order = nullptr;
     }
-    catch (const std::out_of_range &e)
+    else if (order.m_tag == Order::Tag::TAKE_PROFIT)
     {
-        throw std::string("Position for order id " + std::to_string(order.m_payload->m_id) + " doesn't exist");
+        position.m_take_profit_order = nullptr;
+    }
+    else
+    {
+        const int id = order.m_payload->m_id;
+        if (position.m_take_profit_order)
+        {
+            remove_from_level(*position.m_take_profit_order);
+            delete position.m_take_profit_order;
+        }
+
+        if (position.m_stop_loss_order)
+        {
+            remove_from_level(*position.m_stop_loss_order);
+            delete position.m_stop_loss_order;
+        }
+
+        if (order.m_payload->get_status() == NewOrderPayload::Status::PENDING)
+        {
+            remove_from_level(order);
+            delete position.m_entry_order;
+        }
+        this->m_tracker.erase(id);
     }
 }
 
@@ -163,7 +157,6 @@ void OrderBook::push_order(Order &order)
 
     if (order.m_tag == Order::Tag::ENTRY)
     {
-        // book[order.m_payload->m_entry_price].push_back(&order);
         price = order.m_payload->m_entry_price;
     }
     else
@@ -197,7 +190,6 @@ void OrderBook::remove_from_level(Order &order)
 
     if (order.m_tag == Order::Tag::ENTRY)
     {
-        // book[order.m_payload->m_entry_price].remove(&order);
         price = order.m_payload->m_entry_price;
     }
     else
@@ -220,11 +212,6 @@ void OrderBook::remove_from_level(Order &order)
 
             this->m_trailing_stop_loss_orders.remove(&order);
         }
-
-        // book[*((order.m_tag == Order::Tag::TAKE_PROFIT)
-        //            ? order.m_payload->take_profit_price
-        //            : order.m_payload->stop_loss_price)]
-        //     .remove(&order);
     }
 
     book[price].remove(&order);

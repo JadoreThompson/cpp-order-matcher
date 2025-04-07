@@ -61,10 +61,7 @@ public:
     const int m_quantity;
     int m_standing_quantity;
     float m_entry_price;
-    // float stop_loss_price;
     float m_take_profit_price;
-    // std::shared_ptr<StopLossOrder> m_stop_loss; // Entry, SL and TP all carry
-    // StopLossOrder m_stop_loss_order;
     std::unique_ptr<StopLossOrder> m_stop_loss_order;
     float m_closed_price;
     float m_realised_pnl;
@@ -77,10 +74,8 @@ public:
         const Side side,
         const int quantity,
         float entry_price,
+        std::unique_ptr<StopLossOrder> stop_loss_order,
         const ExecutionType exec_type = GTC,
-        // float *stop_loss_price = nullptr,
-        std::unique_ptr<StopLossOrder> stop_loss_order = nullptr,
-        // StopLossOrder stop_loss_order,
         float take_profit_price = 0.0f);
 
     void set_status(Status status);

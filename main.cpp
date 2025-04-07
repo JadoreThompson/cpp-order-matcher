@@ -30,6 +30,7 @@ int main()
             sides[std::rand() % 2],
             std::rand() % 10,
             std::rand() % 50 + 1,
+            std::make_unique<StopLossOrder>(),
             NewOrderPayload::ExecutionType::FOK);
 
         queue.push(std::make_shared<QueuePayload>(QueuePayload::Category::NEW, p));
