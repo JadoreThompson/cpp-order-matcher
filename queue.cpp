@@ -9,30 +9,29 @@ void Queue::lock()
     this->locked = true;
 }
 
-
 void Queue::unlock()
 {
     this->flag.clear(std::memory_order_release);
     this->locked = false;
 }
 
-void Queue::push(std::shared_ptr<QueuePayload> value)
+void Queue::push(QueuePayload &&value)
 {
     lock();
-    this->queue.push_back(value);
+    this->queue.push_back(std::make_unique<QueuePayload>(value));
     unlock();
 }
 
-std::shared_ptr<QueuePayload> Queue::get_nowait()
+std::unique_ptr<QueuePayload> Queue::get_nowait()
 {
     lock();
-    std::shared_ptr<QueuePayload> value = this->queue.front();
+    std::unique_ptr<QueuePayload> value = std::move(this->queue.front());
     this->queue.pop_front();
     unlock();
-    return value;
+    return std::move(value);
 }
 
-std::shared_ptr<QueuePayload> Queue::get()
+std::unique_ptr<QueuePayload> Queue::get()
 {
     lock();
     while (this->queue.empty())

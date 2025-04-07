@@ -28,12 +28,13 @@ int main()
             "APPL",
             NewOrderPayload::OrderType::MARKET,
             sides[std::rand() % 2],
-            std::rand() % 10,
+            std::rand() % 10 + 1,
             std::rand() % 50 + 1,
             std::make_unique<StopLossOrder>(),
-            NewOrderPayload::ExecutionType::FOK);
+            // NewOrderPayload::ExecutionType::FOK);
+            NewOrderPayload::ExecutionType::GTC);
 
-        queue.push(std::make_shared<QueuePayload>(QueuePayload::Category::NEW, p));
+        queue.push(QueuePayload(QueuePayload::Category::NEW, p));
 
         // if (id_counter % 5 == 0)
         // {

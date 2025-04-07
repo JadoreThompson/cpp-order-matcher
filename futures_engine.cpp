@@ -45,13 +45,12 @@ void FuturesEngine::start(Queue &queue)
 
     while (true)
     {
-        std::shared_ptr<QueuePayload> qpayload = queue.get();
+        std::unique_ptr<QueuePayload> qpayload = queue.get();
 
         try
         {
             if (qpayload->m_category == QueuePayload::Category::NEW)
             {
-
                 std::shared_ptr<NewOrderPayload> payload = std::dynamic_pointer_cast<NewOrderPayload>(qpayload->m_payload);
                 if (payload->m_order_type == NewOrderPayload::OrderType::LIMIT)
                 {
@@ -81,10 +80,6 @@ void FuturesEngine::start(Queue &queue)
             throw e;
         }
     }
-}
-
-void FuturesEngine::handler(NewOrderPayload &payload)
-{
 }
 
 void FuturesEngine::place_limit_order(std::shared_ptr<NewOrderPayload> &payload)
@@ -140,7 +135,6 @@ void FuturesEngine::place_fok_market_order(std::shared_ptr<NewOrderPayload> &pay
         payload_p->m_standing_quantity = payload_p->m_quantity;
         payload_p->set_status(NewOrderPayload::Status::FILLED);
         payload_p->set_filled_price(result.m_price);
-        std::cout << "FOK order filled Status " << position.m_entry_order->m_payload->get_status() << std::endl;
         place_tp_sl(*position.m_entry_order, orderbook);
         orderbook.set_price(result.m_price);
     }
@@ -198,7 +192,7 @@ void FuturesEngine::modify_order(std::shared_ptr<ModifyOrderPayload> &&payloadp)
         {
             position.m_entry_order->m_payload->m_stop_loss_order = std::make_unique<StopLossOrder>(payloadp->m_stop_loss_price);
         }
-        
+
         position.m_stop_loss_order = new Order(position.m_entry_order->m_payload, Order::Tag::STOP_LOSS);
         orderbook.push_order(*position.m_stop_loss_order);
     }
@@ -307,12 +301,12 @@ const MatchResult FuturesEngine::match_fok(Order *&order, OrderBook &orderbook)
 
     std::list<std::tuple<Order *&, int, int>> touched_order_coll;
 
-    for (Order *&ex_order : book[order->m_payload->m_entry_price])
+    for (Order *&ex_orderp : book[order->m_payload->m_entry_price])
     {
-        const int ex_order_pre_standing_quantity = ex_order->m_payload->m_standing_quantity;
+        const int ex_order_pre_standing_quantity = ex_orderp->m_payload->m_standing_quantity;
         const int reduce_amount = std::min(order->m_payload->m_standing_quantity, ex_order_pre_standing_quantity);
         order->m_payload->m_standing_quantity -= reduce_amount;
-        touched_order_coll.push_back(std::tuple<Order *&, int, int>{ex_order, ex_order_pre_standing_quantity, reduce_amount});
+        touched_order_coll.push_back(std::tuple<Order *&, int, int>{ex_orderp, ex_order_pre_standing_quantity, reduce_amount});
 
         if (order->m_payload->m_standing_quantity == 0)
         {
@@ -377,7 +371,6 @@ const MatchResult FuturesEngine::gen_match_result(const float og_standing_quanti
 
 void FuturesEngine::handle_filled_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price)
 {
-    std::cout << "Handling filled orders" << std::endl;
     for (auto &tup : orders)
     {
         Order &order = *std::get<0>(tup);
@@ -402,7 +395,6 @@ void FuturesEngine::handle_touched_orders(std::list<std::tuple<Order *&, int>> &
 {
     for (auto &tup : orders)
     {
-
         Order &order = *std::get<0>(tup);
         if (order.m_tag == Order::Tag::ENTRY)
         {
@@ -427,29 +419,19 @@ void FuturesEngine::handle_touched_orders(std::list<std::tuple<Order *&, int>> &
 void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook)
 {
     Position &pos = orderbook.get_position(order.m_payload->m_id);
-    std::cout << 1 << std::endl;
+
     if (order.m_payload->m_take_profit_price != 0.0f)
     {
-        std::cout << 2 << std::endl;
         Order tp_order(order.m_payload, Order::Tag::TAKE_PROFIT);
-        std::cout << 3 << std::endl;
         orderbook.track(tp_order);
-        std::cout << 4 << std::endl;
         orderbook.push_order(tp_order);
-        std::cout << 5 << std::endl;
     }
 
-    std::cout << 6 << std::endl;
-    
     if (order.m_payload->m_stop_loss_order->m_distance != 0.0f ||
         order.m_payload->m_stop_loss_order->m_price != 0.0f)
     {
-        std::cout << 7 << std::endl;
         Order sl_order(order.m_payload, Order::Tag::STOP_LOSS);
-        std::cout << 8 << std::endl;
         orderbook.track(sl_order);
-        std::cout << 9 << std::endl;
         orderbook.push_order(sl_order);
-        std::cout << 10 << std::endl;
     }
 }

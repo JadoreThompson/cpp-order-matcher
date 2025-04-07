@@ -41,8 +41,6 @@ private:
 public:
     void start(Queue &queue);
 
-    void handler(NewOrderPayload &payload);
-
     void place_gtc_market_order(std::shared_ptr<NewOrderPayload> &payload);
 
     void place_fok_market_order(std::shared_ptr<NewOrderPayload> &payload);

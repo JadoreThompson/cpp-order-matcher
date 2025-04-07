@@ -9,17 +9,17 @@
 class Queue
 {
 private:
-    std::deque<std::shared_ptr<QueuePayload>> queue;
+    std::deque<std::unique_ptr<QueuePayload>> queue;
     std::atomic_flag flag = ATOMIC_FLAG_INIT;
     bool locked = false;
     void lock();
     void unlock();
 
 public:
-    void push(std::shared_ptr<QueuePayload> value);
+    void push(QueuePayload &&value);
 
-    std::shared_ptr<QueuePayload> get();
+    std::unique_ptr<QueuePayload> get();
 
-    std::shared_ptr<QueuePayload> get_nowait();
+    std::unique_ptr<QueuePayload> get_nowait();
 };
 #endif
