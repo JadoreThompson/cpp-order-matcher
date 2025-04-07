@@ -15,26 +15,23 @@ OrderBook::OrderBook(const std::string instrument, const float price)
     : m_instrument(instrument), m_price(price), m_last_price(price) {};
 
 // Returns the book that the order should be matched against.
-std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order) const
+// std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order) const
+std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order)
+// std::map<float, std::vector<Order *>> &OrderBook::get_book(const Order &order) const
 {
     if (order.m_tag == Order::Tag::ENTRY)
     {
         return const_cast<std::map<float, std::list<Order *>> &>((order.m_payload->m_side == NewOrderPayload::Side::ASK) ? this->m_bids : this->m_asks);
+        // return const_cast<std::map<float, std::vector<Order *>> &>((order.m_payload->m_side == NewOrderPayload::Side::ASK) ? this->m_bids : this->m_asks);
     }
 
     return const_cast<std::map<float, std::list<Order *>> &>((order.m_payload->m_side == NewOrderPayload::Side::ASK) ? this->m_bids : this->m_asks);
+    // return const_cast<std::map<float, std::vector<Order *>> &>((order.m_payload->m_side == NewOrderPayload::Side::ASK) ? this->m_bids : this->m_asks);
 }
 
 Position &OrderBook::get_position(const int id)
 {
-    try
-    {
-        return this->m_tracker.at(id);
-    }
-    catch (const std::out_of_range &e)
-    {
-        throw std::string("Position with id " + std::to_string(id) + " doesn't exist");
-    }
+    return this->m_tracker.at(id);
 }
 
 // Specifically used for ENTRY orders.
@@ -45,37 +42,31 @@ Position &OrderBook::declare(std::shared_ptr<NewOrderPayload> payload)
         throw std::string("Position already exists");
     }
 
-    this->m_tracker.emplace(payload->m_id, new Order(payload, Order::Tag::ENTRY));
-    return this->m_tracker.at(payload->m_id);
+    return this->m_tracker.emplace(payload->m_id, new Order(payload, Order::Tag::ENTRY)).first->second;
+    // return this->m_tracker.at(payload->m_id);
 }
 
 // Used for STOP_LOSS and TAKE_PROFIT orders.
-Position &OrderBook::track(Order &order)
+// Position &OrderBook::track(Order &order)
+void OrderBook::track(Order &order)
 {
-    try
+    if (order.m_tag == Order::Tag::ENTRY)
     {
-        Position &position = this->m_tracker.at(order.m_payload->m_id);
-
-        if (order.m_tag == Order::Tag::ENTRY)
-        {
-            throw std::string("Position already exists");
-        }
-
-        if (order.m_tag == Order::Tag::TAKE_PROFIT)
-        {
-            position.m_take_profit_order = &order;
-        }
-        else
-        {
-            position.m_stop_loss_order = &order;
-        }
-
-        return position;
+        throw std::string("Position already exists");
     }
-    catch (const std::out_of_range &e)
+    
+    Position &position = this->m_tracker.at(order.m_payload->m_id);
+
+    if (order.m_tag == Order::Tag::TAKE_PROFIT)
     {
-        throw std::string("Cannot add " + std::to_string(order.m_tag) + " to tracker without an existing position");
+        position.m_take_profit_order = &order;
     }
+    else
+    {
+        position.m_stop_loss_order = &order;
+    }
+
+    // return position;
 }
 
 /*

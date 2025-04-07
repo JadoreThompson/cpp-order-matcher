@@ -59,9 +59,11 @@ public:
 
     const MatchResult gen_match_result(const float og_standing_quantity, Order &order, const float price);
 
-    void handle_filled_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price);
+    // void handle_filled_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price);
+    void handle_filled_orders(std::list<std::pair<Order *&, int>> &orders, OrderBook &orderbook, const float price);
 
-    void handle_touched_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price);
+    // void handle_touched_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price);
+    void handle_touched_orders(std::list<std::pair<Order *&, int>> &orders, OrderBook &orderbook, const float price);
 
     void place_tp_sl(Order &order, OrderBook &orderbook);
 };
