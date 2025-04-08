@@ -15,18 +15,15 @@ OrderBook::OrderBook(const std::string instrument, const float price)
     : m_instrument(instrument), m_price(price), m_last_price(price) {};
 
 // Returns the book that the order should be matched against.
-// std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order) const
+
 std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order)
-// std::map<float, std::vector<Order *>> &OrderBook::get_book(const Order &order) const
 {
     if (order.m_tag == Order::Tag::ENTRY)
     {
         return const_cast<std::map<float, std::list<Order *>> &>((order.m_payload->m_side == NewOrderPayload::Side::ASK) ? this->m_bids : this->m_asks);
-        // return const_cast<std::map<float, std::vector<Order *>> &>((order.m_payload->m_side == NewOrderPayload::Side::ASK) ? this->m_bids : this->m_asks);
     }
 
     return const_cast<std::map<float, std::list<Order *>> &>((order.m_payload->m_side == NewOrderPayload::Side::ASK) ? this->m_bids : this->m_asks);
-    // return const_cast<std::map<float, std::vector<Order *>> &>((order.m_payload->m_side == NewOrderPayload::Side::ASK) ? this->m_bids : this->m_asks);
 }
 
 Position &OrderBook::get_position(const int id)
@@ -37,24 +34,17 @@ Position &OrderBook::get_position(const int id)
 // Specifically used for ENTRY orders.
 Position &OrderBook::declare(std::shared_ptr<NewOrderPayload> payload)
 {
-    if (this->m_tracker.find(payload->m_id) != this->m_tracker.end())
-    {
-        throw std::string("Position already exists");
-    }
-
     return this->m_tracker.emplace(payload->m_id, new Order(payload, Order::Tag::ENTRY)).first->second;
-    // return this->m_tracker.at(payload->m_id);
 }
 
 // Used for STOP_LOSS and TAKE_PROFIT orders.
-// Position &OrderBook::track(Order &order)
 void OrderBook::track(Order &order)
 {
     if (order.m_tag == Order::Tag::ENTRY)
     {
         throw std::string("Position already exists");
     }
-    
+
     Position &position = this->m_tracker.at(order.m_payload->m_id);
 
     if (order.m_tag == Order::Tag::TAKE_PROFIT)
@@ -65,8 +55,6 @@ void OrderBook::track(Order &order)
     {
         position.m_stop_loss_order = &order;
     }
-
-    // return position;
 }
 
 /*
@@ -76,7 +64,8 @@ void OrderBook::track(Order &order)
  */
 void OrderBook::rtrack(Order &order)
 {
-    Position &position = this->m_tracker.at(order.m_payload->m_id);
+    const int id = order.m_payload->m_id;
+    Position &position = this->m_tracker.at(id);
 
     if (order.m_tag == Order::Tag::STOP_LOSS)
     {
@@ -88,7 +77,6 @@ void OrderBook::rtrack(Order &order)
     }
     else
     {
-        const int id = order.m_payload->m_id;
         if (position.m_take_profit_order)
         {
             remove_from_level(*position.m_take_profit_order);
@@ -106,6 +94,7 @@ void OrderBook::rtrack(Order &order)
             remove_from_level(order);
             delete position.m_entry_order;
         }
+
         this->m_tracker.erase(id);
     }
 }
@@ -119,25 +108,17 @@ void OrderBook::set_price(float price)
     this->m_last_price = price;
 }
 
-float OrderBook::best_price(NewOrderPayload::Side &&side)
+float OrderBook::get_best_price(NewOrderPayload::Side &&side)
 {
+    float best_price;
+
     if (side == NewOrderPayload::Side::ASK)
     {
-        float best_price = this->m_asks.begin()->first;
-        if (best_price)
-        {
-            return this->m_price;
-        }
-
-        return best_price;
+        best_price = this->m_asks.begin()->first;
+        return (best_price) ? best_price : this->m_price;
     }
 
-    float best_price = this->m_bids.rbegin()->first;
-    if (best_price)
-    {
-        return this->m_price;
-    }
-
+    return (this->m_bids.empty()) ? this->m_price : this->m_bids.begin()->first;
     return best_price;
 }
 

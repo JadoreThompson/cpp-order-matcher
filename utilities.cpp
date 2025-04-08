@@ -26,7 +26,7 @@ void calc_upl(Order &order, const float standing_quantity, const float price)
         return;
     }
 
-    const float pos_value = filled_price * order.m_payload->m_standing_quantity;
+    const float pos_value = filled_price * standing_quantity;
     float upl;
 
     if (order.m_payload->m_side == NewOrderPayload::Side::ASK)

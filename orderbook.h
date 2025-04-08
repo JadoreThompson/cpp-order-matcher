@@ -26,9 +26,6 @@ private:
     std::map<float, std::list<Order *>> m_bids;
     std::map<float, std::list<Order *>> m_asks;
     std::list<Order *> m_trailing_stop_loss_orders;
-    // std::map<float, std::vector<Order *>> m_bids;
-    // std::map<float, std::vector<Order *>> m_asks;
-    // std::vector<Order *> m_trailing_stop_loss_orders;
     float m_last_price;
     float m_price;
 
@@ -39,13 +36,10 @@ public:
 
     OrderBook(const std::string instrument, const float price);
 
-    // std::map<float, std::list<Order *>> &get_book(const Order &order) const;
     std::map<float, std::list<Order *>> &get_book(const Order &order);
-    // std::map<float, std::vector<Order *>> &get_book(const Order &order) const;
 
     Position &declare(std::shared_ptr<NewOrderPayload> payload);
 
-    // Position &track(Order &order);
     void track(Order &order);
 
     void rtrack(Order &order);
@@ -56,7 +50,7 @@ public:
 
     void set_price(float price);
 
-    float best_price(NewOrderPayload::Side &&side);
+    float get_best_price(NewOrderPayload::Side &&side);
 
     void push_order(Order &order);
 

@@ -19,7 +19,7 @@ int main()
 
     std::thread engine_thread(handle_engine, std::ref(engine), std::ref(queue));
 
-    while (true)
+    for (int i = 0; i < 1000000; i++)
     {
         id_counter++;
 
@@ -35,18 +35,6 @@ int main()
             NewOrderPayload::ExecutionType::GTC);
 
         queue.push(QueuePayload(QueuePayload::Category::NEW, p));
-
-        // if (id_counter % 5 == 0)
-        // {
-        //     queue.push(
-        //         std::make_shared<QueuePayload>(
-        //             QueuePayload::Category::MODIFY,
-        //             std::make_shared<ModifyOrderPayload>(
-        //                 id_counter,
-        //                 "APPL",
-        //                 float(std::rand() % 50 + 1),
-        //                 float(std::rand() % 50 + 1))));
-        // }
     }
 
     engine_thread.join();

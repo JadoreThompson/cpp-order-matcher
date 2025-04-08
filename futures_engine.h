@@ -7,28 +7,28 @@
 #include "orderbook.h"
 #include "queue.h"
 
-enum MatchResultType
-{
-    FAILURE,
-    PARTIAL,
-    SUCCESS
-};
-
 struct MatchResult
 {
+    enum MatchResultType
+    {
+        FAILURE,
+        PARTIAL,
+        SUCCESS
+    };
+
 private:
-    MatchResultType m_result_type;
     bool m_result_set;
 
 public:
+    MatchResultType m_result_type;
     int m_price;
 
-    MatchResult(MatchResultType result_type,
+    MatchResult(const MatchResultType result_type,
                 int price = -1);
 
     MatchResult();
 
-    void set_result_type(MatchResultType result_type);
+    void set_result_type(const MatchResultType result_type);
 
     const MatchResultType &get_result_type() const;
 };
@@ -59,11 +59,9 @@ public:
 
     const MatchResult gen_match_result(const float og_standing_quantity, Order &order, const float price);
 
-    // void handle_filled_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price);
-    void handle_filled_orders(std::list<std::pair<Order *&, int>> &orders, OrderBook &orderbook, const float price);
-
-    // void handle_touched_orders(std::list<std::tuple<Order *&, int>> &orders, OrderBook &orderbook, const float price);
-    void handle_touched_orders(std::list<std::pair<Order *&, int>> &orders, OrderBook &orderbook, const float price);
+    void handle_filled_orders(std::vector<std::pair<Order *, int>> &orders, OrderBook &orderbook, const float price);
+    
+    void handle_touched_orders(std::vector<std::pair<Order *, int>> &orders, OrderBook &orderbook, const float price);
 
     void place_tp_sl(Order &order, OrderBook &orderbook);
 };
