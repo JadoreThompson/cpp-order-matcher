@@ -1,45 +1,25 @@
 #include <iostream>
+#include <thread>
 #include "queue.h"
 
-void Queue::lock()
+void Queue::push(QueuePayload &&payload)
 {
-    while (this->flag.test_and_set(std::memory_order_acquire))
     {
-    };
-    this->locked = true;
+        std::lock_guard<std::mutex> lock(this->m_mutex);
+        this->m_queue.emplace_back(std::move(payload));
+        this->m_cv.notify_one();
+    }
 }
 
-void Queue::unlock()
+void Queue::get()
 {
-    this->flag.clear(std::memory_order_release);
-    this->locked = false;
-}
-
-void Queue::push(QueuePayload &&value)
-{
-    lock();
-    this->queue.push_back(std::make_unique<QueuePayload>(value));
-    unlock();
-}
-
-std::unique_ptr<QueuePayload> Queue::get_nowait()
-{
-    lock();
-    std::unique_ptr<QueuePayload> value = std::move(this->queue.front());
-    this->queue.pop_front();
-    unlock();
-    return std::move(value);
-}
-
-std::unique_ptr<QueuePayload> Queue::get()
-{
-    lock();
-    while (this->queue.empty())
+    while (this->m_queue.empty())
     {
-        unlock();
-        lock();
+        std::unique_lock<std::mutex> lock(this->m_mutex);
+        this->m_cv.wait(lock, [this]
+                        { return !this->m_queue.empty(); });
     }
 
-    unlock();
-    return get_nowait();
+    QueuePayload payload(std::move(this->m_queue.front()));
+    this->m_queue.pop_front();
 }

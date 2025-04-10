@@ -7,6 +7,8 @@
 #include "orderbook.h"
 #include "queue.h"
 
+const int LOOPS = 10000;
+
 struct MatchResult
 {
     enum MatchResultType
@@ -41,11 +43,11 @@ private:
 public:
     void start(Queue &queue);
 
-    void place_gtc_market_order(std::shared_ptr<NewOrderPayload> &payload);
+    void place_gtc_market_order(std::shared_ptr<OrderPayload> &payload);
 
-    void place_fok_market_order(std::shared_ptr<NewOrderPayload> &payload);
+    void place_fok_market_order(std::shared_ptr<OrderPayload> &payload);
 
-    void place_limit_order(std::shared_ptr<NewOrderPayload> &payload);
+    void place_limit_order(std::shared_ptr<OrderPayload> &payload);
 
     void cancel_order(std::shared_ptr<BasePayload> &payload);
 
@@ -60,7 +62,7 @@ public:
     const MatchResult gen_match_result(const float og_standing_quantity, Order &order, const float price);
 
     void handle_filled_orders(std::vector<std::pair<Order *, int>> &orders, OrderBook &orderbook, const float price);
-    
+
     void handle_touched_orders(std::vector<std::pair<Order *, int>> &orders, OrderBook &orderbook, const float price);
 
     void place_tp_sl(Order &order, OrderBook &orderbook);

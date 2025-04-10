@@ -38,7 +38,7 @@ public:
 
     std::map<float, std::list<Order *>> &get_book(const Order &order);
 
-    Position &declare(std::shared_ptr<NewOrderPayload> payload);
+    Position &declare(std::shared_ptr<OrderPayload> payload);
 
     void track(Order &order);
 
@@ -50,7 +50,7 @@ public:
 
     void set_price(float price);
 
-    float get_best_price(NewOrderPayload::Side &&side);
+    float get_best_price(Side &&side);
 
     void push_order(Order &order);
 

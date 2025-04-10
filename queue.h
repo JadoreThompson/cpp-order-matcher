@@ -1,25 +1,23 @@
 #ifndef _QUEUE_
 #define _QUEUE_
 
+#include <atomic>
+#include <condition_variable>
 #include <deque>
 #include <memory>
-#include <atomic>
+#include <mutex>
 #include "order.h"
 
 class Queue
 {
 private:
-    std::deque<std::unique_ptr<QueuePayload>> queue;
-    std::atomic_flag flag = ATOMIC_FLAG_INIT;
-    bool locked = false;
-    void lock();
-    void unlock();
+    std::deque<QueuePayload> m_queue;
+    std::condition_variable m_cv;
+    std::mutex m_mutex;
 
 public:
-    void push(QueuePayload &&value);
+    void push(QueuePayload &&payload);
 
-    std::unique_ptr<QueuePayload> get();
-
-    std::unique_ptr<QueuePayload> get_nowait();
+    void get();
 };
 #endif

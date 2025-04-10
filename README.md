@@ -9,7 +9,7 @@ Current performance
 | Order Type       | Orders Processed | Total Time (s) | Avg Time per Order |
 |------------------|------------------|----------------|---------------------|
 | GTC (Good-Til-Cancelled) | 1,000,000        | 3.0           | 3,000 µs              |
-| FOK (Fill-Or-Kill)       | 1,000,000        | 1.6            | 1,700 µs               |
+| FOK (Fill-Or-Kill)       | 1,000,000        | 1.6            | 1,620 µs               |
 
 # **Requirements**
 
