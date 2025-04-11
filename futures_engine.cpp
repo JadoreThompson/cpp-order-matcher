@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <numeric>
 #include "futures_engine.h"
 #include "order.h"
 #include "orderbook.h"
@@ -44,19 +45,12 @@ const MatchResult::MatchResultType &MatchResult::get_result_type() const
 void FuturesEngine::start(Queue &queue)
 {
     this->orderbooks.emplace("APPL", OrderBook("APPL", 50.0f));
-    const std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
 
     // while (true)
     for (int _ = 0; _ < LOOPS; _++)
     {
-        queue.get();
+        QueuePayload payload = queue.get();
     }
-
-    const std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
-    std::cout 
-        << "Time taken: " << std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count() / LOOPS * 1e9 
-        << " ns" 
-        << std::endl;
 }
 
 void FuturesEngine::place_limit_order(std::shared_ptr<OrderPayload> &payload)

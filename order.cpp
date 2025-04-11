@@ -14,7 +14,6 @@ OrderPayload::OrderPayload(
     const Side side,
     const int quantity,
     float entry_price,
-    // std::unique_ptr<StopLossOrder> stop_loss_order,
     const ExecutionType exec_type,
     StopLossOrder &&stop_loss_order,
     float take_profit_price)
@@ -25,7 +24,6 @@ OrderPayload::OrderPayload(
       m_quantity(quantity),
       m_standing_quantity(quantity),
       m_entry_price(entry_price),
-      //   m_stop_loss_order(std::move(stop_loss_order)),
       m_stop_loss_order(stop_loss_order),
       m_take_profit_price(take_profit_price),
       m_realised_pnl(0.0),
@@ -87,32 +85,28 @@ QueuePayload::QueuePayload(const Category category, std::unique_ptr<BasePayload>
 
 QueuePayload::QueuePayload(QueuePayload &&other)
     : m_category(other.m_category), m_payload(std::move(other.m_payload)) {
-          // std::cout << "Move Constructor called on QueuePayload" << std::endl;
+    
       };
 
 QueuePayload::QueuePayload(QueuePayload &other)
-    : m_category(other.m_category), m_payload(std::move(other.m_payload)) {
-          // std::cout << "Move Constructor called on QueuePayload" << std::endl;
-      };
+    : m_category(other.m_category), m_payload(std::move(other.m_payload)) {};
 
-QueuePayload &QueuePayload::operator=(QueuePayload &&other)
+QueuePayload &QueuePayload::operator=(const QueuePayload &&other)
 {
-    std::cout << "";
     this->m_category = other.m_category;
-    this->m_payload = std::move(other.m_payload);
+    this->m_payload = std::make_unique<BasePayload>(*other.m_payload);
     return *this;
 }
 
-QueuePayload &QueuePayload::operator=(QueuePayload &other)
+QueuePayload &QueuePayload::operator=(const QueuePayload &other)
 {
     this->m_category = other.m_category;
-    this->m_payload = std::move(other.m_payload);
+    this->m_payload = std::make_unique<BasePayload>(*other.m_payload);
     return *this;
 }
 
 QueuePayload::~QueuePayload()
 {
-    // std::cout << "Queue Payload being destroyed" << std::endl;
 }
 
 Order::Order(std::shared_ptr<OrderPayload> payload, const Tag tag) : m_payload(payload), m_tag(tag) {};

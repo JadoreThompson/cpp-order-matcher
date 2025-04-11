@@ -115,6 +115,7 @@ public:
 
 struct QueuePayload
 {
+public:
     enum Category
     {
         NEW,
@@ -131,13 +132,14 @@ struct QueuePayload
 
     QueuePayload(QueuePayload &&other);
 
-    QueuePayload(QueuePayload &other);
-
-    QueuePayload &operator=(QueuePayload &&other);
-
-    QueuePayload &operator=(QueuePayload &other);
+    QueuePayload &operator=(const QueuePayload &&other);
 
     ~QueuePayload();
+
+private:
+    QueuePayload(QueuePayload &other);
+
+    QueuePayload &operator=(const QueuePayload &other);
 };
 
 struct Order

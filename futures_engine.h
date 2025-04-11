@@ -7,7 +7,7 @@
 #include "orderbook.h"
 #include "queue.h"
 
-const int LOOPS = 10000;
+const int LOOPS = 1'000'000;
 
 struct MatchResult
 {
