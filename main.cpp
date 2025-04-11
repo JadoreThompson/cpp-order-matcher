@@ -7,7 +7,6 @@
 #include "order.h"
 #include "queue.h"
 
-
 void handle_engine(FuturesEngine &engine, Queue &queue);
 void push_engine(Queue &queue);
 
@@ -31,11 +30,11 @@ void handle_engine(FuturesEngine &engine, Queue &queue)
 
 void push_engine(Queue &queue)
 {
-    int id_counter = 0;
     const Side sides[] = {Side::BID, Side::ASK};
     const OrderType ots[] = {OrderType::MARKET, OrderType::LIMIT};
 
-    for (int i = 0; i < LOOPS * 5; i++)
+    // for (int i = 0; i < LOOPS * 5; i++)
+    for (int i = 0; i < LOOPS; i++)
     {
         // QueuePayload qp(QueuePayload::Category::NEW, OrderPayload(
         //                                                  i,
@@ -47,6 +46,7 @@ void push_engine(Queue &queue)
         //                                                  // NewOrderPayload::ExecutionType::FOK);
         //                                                  ExecutionType::GTC));
 
+        // std::cout << "Creating QueuePayload" << "\n";
         QueuePayload qp{QueuePayload::Category::NEW, std::move(std::make_unique<OrderPayload>(
                                                          i,
                                                          "A",
@@ -56,6 +56,7 @@ void push_engine(Queue &queue)
                                                          std::rand() % 50 + 1,
                                                          // NewOrderPayload::ExecutionType::FOK);
                                                          ExecutionType::GTC))};
+        // std::cout << "QueuePayload created" << std::endl;
         queue.push(std::move(qp));
     }
 }

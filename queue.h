@@ -18,6 +18,6 @@ private:
 public:
     void push(QueuePayload &&payload);
 
-    void get();
+    void get() noexcept;
 };
 #endif

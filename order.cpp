@@ -86,8 +86,34 @@ QueuePayload::QueuePayload(const Category category, std::unique_ptr<BasePayload>
     : m_category(category), m_payload(std::move(payloadp)) {};
 
 QueuePayload::QueuePayload(QueuePayload &&other)
-    : m_category(other.m_category), m_payload(std::move(other.m_payload)) {};
+    : m_category(other.m_category), m_payload(std::move(other.m_payload)) {
+          // std::cout << "Move Constructor called on QueuePayload" << std::endl;
+      };
 
+QueuePayload::QueuePayload(QueuePayload &other)
+    : m_category(other.m_category), m_payload(std::move(other.m_payload)) {
+          // std::cout << "Move Constructor called on QueuePayload" << std::endl;
+      };
+
+QueuePayload &QueuePayload::operator=(QueuePayload &&other)
+{
+    std::cout << "";
+    this->m_category = other.m_category;
+    this->m_payload = std::move(other.m_payload);
+    return *this;
+}
+
+QueuePayload &QueuePayload::operator=(QueuePayload &other)
+{
+    this->m_category = other.m_category;
+    this->m_payload = std::move(other.m_payload);
+    return *this;
+}
+
+QueuePayload::~QueuePayload()
+{
+    // std::cout << "Queue Payload being destroyed" << std::endl;
+}
 
 Order::Order(std::shared_ptr<OrderPayload> payload, const Tag tag) : m_payload(payload), m_tag(tag) {};
 

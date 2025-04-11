@@ -130,6 +130,14 @@ struct QueuePayload
     QueuePayload(const Category category, std::unique_ptr<BasePayload> &&payloadp);
 
     QueuePayload(QueuePayload &&other);
+
+    QueuePayload(QueuePayload &other);
+
+    QueuePayload &operator=(QueuePayload &&other);
+
+    QueuePayload &operator=(QueuePayload &other);
+
+    ~QueuePayload();
 };
 
 struct Order
