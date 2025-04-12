@@ -9,12 +9,12 @@ Current performance
 | Topic                    | Loop Size | Total Time (s) | Avg Time (ns) |
 | ------------------------ | --------- | -------------- | ------------- |
 | Queue                    | 1,000,000 | 0.538621       | 538.621       |
-| GTC (Good-Til-Cancelled) | 1,000,000 | 10.0           | 3,000         |
-| FOK (Fill-Or-Kill)       | 1,000,000 | 1.6            | 1,620         |
+| GTC (Good-Til-Cancelled) | 1,000,000 | 0.550012       | 550.012       |
+| FOK (Fill-Or-Kill)       | 1,000,000 | 0.53078        | 530.78        |
 
 # **Requirements**
 
-A chosen compiler e.g. g++.
+A chosen compiler. I've tested this with zig and gcc compiler. The zig compiler (utilising clang under the hood) garners the best results where compiling with gcc makes the program around 1.25x slower.
 
 # **Installation**
 
