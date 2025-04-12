@@ -1,5 +1,3 @@
-#include <iostream>
-#include <thread>
 #include "queue.h"
 
 void Queue::push(QueuePayload &&payload)

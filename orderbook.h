@@ -11,38 +11,30 @@
 
 class OrderBookEmpty : public std::exception
 {
-private:
-    const char *m_msg;
-
 public:
     OrderBookEmpty(const char *msg);
     const char *what();
+
+private:
+    const char *m_msg;
 };
 
 class OrderBook
 {
-private:
-    std::map<int, Position> m_tracker;
-    std::map<float, std::list<Order *>> m_bids;
-    std::map<float, std::list<Order *>> m_asks;
-    std::list<Order *> m_trailing_stop_loss_orders;
-    float m_last_price;
-    float m_price;
-
-    void _update_trailing_stop_loss_orders(float price);
-
 public:
     const std::string m_instrument;
 
+    // int counter{};
+
     OrderBook(const std::string instrument, const float price);
 
-    std::map<float, std::list<Order *>> &get_book(const Order &order);
+    std::map<float, std::list<std::shared_ptr<Order>>> &get_book(const Order &order);
 
     Position &declare(std::shared_ptr<OrderPayload> payload);
 
-    void track(Order &order);
+    void track(std::shared_ptr<Order> order);
 
-    void rtrack(Order &order);
+    void rtrack(std::shared_ptr<Order> &order);
 
     Position &get_position(const int id);
 
@@ -52,11 +44,21 @@ public:
 
     float get_best_price(Side &&side);
 
-    void push_order(Order &order);
+    void push_order(std::shared_ptr<Order> &order);
 
-    void remove_from_level(Order &order);
+    void remove_from_level(std::shared_ptr<Order> &order);
 
     std::pair<int, int> size();
+
+private:
+    void _update_trailing_stop_loss_orders(float price);
+
+    std::map<int, Position> m_tracker;
+    std::map<float, std::list<std::shared_ptr<Order>>> m_bids;
+    std::map<float, std::list<std::shared_ptr<Order>>> m_asks;
+    std::list<std::shared_ptr<Order>> m_trailing_stop_loss_orders;
+    float m_last_price;
+    float m_price;
 };
 
 #endif

@@ -1,6 +1,4 @@
 #include "order.h"
-#include <string>
-#include <iostream>
 
 BasePayload::BasePayload(const int id, const std::string instrument)
     : m_id(id), m_instrument(instrument) {};
@@ -15,9 +13,10 @@ OrderPayload::OrderPayload(
     const int quantity,
     float entry_price,
     const ExecutionType exec_type,
-    StopLossOrder &&stop_loss_order,
+    StopLossOrder stop_loss_order,
+    // std::unique_ptr<StopLossOrder> stop_loss_order,
     float take_profit_price)
-    : BasePayload(std::move(id), std::move(instrument)),
+    : BasePayload(id, instrument),
       m_exec_type(exec_type),
       m_order_type(order_type),
       m_side(side),
@@ -25,11 +24,11 @@ OrderPayload::OrderPayload(
       m_standing_quantity(quantity),
       m_entry_price(entry_price),
       m_stop_loss_order(stop_loss_order),
+      //   m_stop_loss_order(std::move(stop_loss_order)),
       m_take_profit_price(take_profit_price),
       m_realised_pnl(0.0),
       m_unrealised_pnl(0.0),
-      m_status(PENDING),
-      m_filled_price_set(false) {};
+      m_status(PENDING) {};
 
 // void OrderPayload::set_status(Status status)
 // {
@@ -85,7 +84,7 @@ QueuePayload::QueuePayload(const Category category, std::unique_ptr<BasePayload>
 
 QueuePayload::QueuePayload(QueuePayload &&other)
     : m_category(other.m_category), m_payload(std::move(other.m_payload)) {
-    
+
       };
 
 QueuePayload::QueuePayload(QueuePayload &other)
@@ -109,14 +108,28 @@ QueuePayload::~QueuePayload()
 {
 }
 
-Order::Order(std::shared_ptr<OrderPayload> payload, const Tag tag) : m_payload(payload), m_tag(tag) {};
+// BaseOrder::BaseOrder(const Tag tag) : m_tag(tag) {};
 
-bool Order::operator==(const Order &other) const
-{
-    return this->m_payload->m_id == other.m_payload->m_id;
-}
+// EntryOrder::EntryOrder(const Tag tag, std::unique_ptr<OrderPayload> payload)
+//     : BaseOrder(tag), m_payload(std::move(payload)) {};
 
-Position::Position(Order *entry_order)
+// ExitOrder::ExitOrder(const Tag tag, std::unique_ptr<OrderPayload> &payload)
+//     : BaseOrder(tag), m_payload(payload) {};
+
+// Order::Order(std::shared_ptr<OrderPayload> payload, const Tag tag) : m_payload(payload), m_tag(tag) {};
+Order::Order(const Tag tag, std::shared_ptr<OrderPayload> payload) : m_payload(payload), m_tag(tag) {};
+
+// Position::Position(Order *entry_order)
+//     : m_entry_order(entry_order),
+//       m_stop_loss_order(nullptr),
+//       m_take_profit_order(nullptr) {};
+
+// Position::Position(std::unique_ptr<Order> entry_order)
+//     : m_entry_order(std::move(entry_order)),
+//       m_stop_loss_order(nullptr),
+//       m_take_profit_order(nullptr) {};
+
+Position::Position(std::shared_ptr<Order> entry_order)
     : m_entry_order(entry_order),
       m_stop_loss_order(nullptr),
       m_take_profit_order(nullptr) {};

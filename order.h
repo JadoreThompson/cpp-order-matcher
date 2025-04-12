@@ -1,16 +1,8 @@
 #ifndef _ORDER_
 #define _ORDER_
 
-#include <optional>
-#include <iostream>
 #include <string>
 #include <memory>
-
-enum Side
-{
-    BID,
-    ASK
-};
 
 enum ExecutionType
 {
@@ -24,6 +16,12 @@ enum OrderType
     LIMIT
 };
 
+enum Side
+{
+    BID,
+    ASK
+};
+
 enum Status
 {
     PENDING,
@@ -31,6 +29,13 @@ enum Status
     FILLED,
     PARTIALLY_CLOSED,
     CLOSED
+};
+
+enum Tag
+{
+    ENTRY,
+    STOP_LOSS,
+    TAKE_PROFIT,
 };
 
 struct BasePayload
@@ -52,25 +57,21 @@ struct StopLossOrder
 
 struct OrderPayload : public BasePayload
 {
-
-private:
-    Status m_status;
-    float m_filled_price;
-    bool m_filled_price_set;
-
-public:
     const ExecutionType m_exec_type;
     const OrderType m_order_type;
     const Side m_side;
     const int m_quantity;
-    int m_standing_quantity;
     float m_entry_price;
-    float m_take_profit_price;
-    // std::unique_ptr<StopLossOrder> m_stop_loss_order;
-    StopLossOrder m_stop_loss_order;
+
+    Status m_status;
+    float m_filled_price = -1.0f;
     float m_closed_price;
+    float m_take_profit_price;
     float m_realised_pnl;
     float m_unrealised_pnl;
+    int m_standing_quantity;
+    // std::unique_ptr<StopLossOrder> m_stop_loss_order;
+    StopLossOrder m_stop_loss_order;
 
     OrderPayload(
         const int id,
@@ -79,9 +80,9 @@ public:
         const Side side,
         const int quantity,
         float entry_price,
-        // std::unique_ptr<StopLossOrder> stop_loss_order,
         const ExecutionType exec_type = GTC,
-        StopLossOrder &&stop_loss_order = NULL,
+        // std::unique_ptr<StopLossOrder> stop_loss_order = nullptr,
+        StopLossOrder stop_loss_order = {},
         float take_profit_price = 0.0f);
 
     // void set_status(Status status);
@@ -142,29 +143,53 @@ private:
     QueuePayload &operator=(const QueuePayload &other);
 };
 
-struct Order
-{
-    enum Tag
-    {
-        ENTRY,
-        STOP_LOSS,
-        TAKE_PROFIT,
-    };
+// struct BaseOrder
+// {
+// public:
+//     const Tag m_tag;
+//     BaseOrder(const Tag m_tag);
+// };
 
+// struct EntryOrder : public BaseOrder
+// {
+// public:
+//     std::unique_ptr<OrderPayload> m_payload;
+//     EntryOrder(const Tag m_tag, std::unique_ptr<OrderPayload> payload);
+// };
+
+// // Represents StopLoss and TakeProfit orders
+// struct ExitOrder : public BaseOrder
+// {
+// public:
+//     std::unique_ptr<OrderPayload> &m_payload;
+//     ExitOrder(const Tag m_tag, std::unique_ptr<OrderPayload> &payload);
+// };
+
+class Order
+{
 public:
     const Tag m_tag;
     std::shared_ptr<OrderPayload> m_payload;
-    Order(std::shared_ptr<OrderPayload> payload, const Tag tag);
-    bool operator==(const Order &other) const;
+    Order(const Tag m_tag, std::shared_ptr<OrderPayload> payload);
 };
 
 class Position
 {
 public:
-    Order *m_entry_order;
-    Order *m_stop_loss_order = nullptr;
-    Order *m_take_profit_order = nullptr;
-    Position(Order *entry_order);
+    // Order *m_entry_order;
+    // Order *m_stop_loss_order = nullptr;
+    // Order *m_take_profit_order = nullptr;
+
+    // std::unique_ptr<EntryOrder> m_entry_order;
+    // std::unique_ptr<ExitOrder> m_stop_loss_order = nullptr;
+    // std::unique_ptr<ExitOrder> m_take_profit_order = nullptr;
+
+    std::shared_ptr<Order> m_entry_order;
+    std::shared_ptr<Order> m_stop_loss_order = nullptr;
+    std::shared_ptr<Order> m_take_profit_order = nullptr;
+
+    // Position(Order *entry_order);
+    Position(std::shared_ptr<Order> entry_order);
 };
 
 #endif
