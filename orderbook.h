@@ -5,8 +5,9 @@
 #include <list>
 #include <map>
 #include <memory>
-#include <vector>
 #include <string>
+#include <unordered_set>
+#include <vector>
 #include "order.h"
 
 class OrderBookEmpty : public std::exception
@@ -24,8 +25,6 @@ class OrderBook
 public:
     const std::string m_instrument;
 
-    // int counter{};
-
     OrderBook(const std::string instrument, const float price);
 
     std::map<float, std::list<std::shared_ptr<Order>>> &get_book(const Order &order);
@@ -38,25 +37,28 @@ public:
 
     Position &get_position(const int id);
 
-    float get_price();
+    const float get_price() noexcept;
 
     void set_price(float price);
 
-    float get_best_price(Side &&side);
+    const float get_best_price(Side side) noexcept;
 
     void push_order(std::shared_ptr<Order> &order);
 
     void remove_from_level(std::shared_ptr<Order> &order);
 
-    std::pair<int, int> size();
+    std::pair<int, int> size() noexcept;
 
-private:
-    void _update_trailing_stop_loss_orders(float price);
+    void print_size(const std::map<float, std::list<std::shared_ptr<Order>>> &bids);
 
-    std::map<int, Position> m_tracker;
     std::map<float, std::list<std::shared_ptr<Order>>> m_bids;
     std::map<float, std::list<std::shared_ptr<Order>>> m_asks;
-    std::list<std::shared_ptr<Order>> m_trailing_stop_loss_orders;
+    std::map<int, Position> m_tracker;
+
+private:
+    void update_trailing_stop_loss_orders(float price) noexcept;
+
+    std::unordered_set<std::shared_ptr<Order>> m_trailing_stop_loss_orders;
     float m_last_price;
     float m_price;
 };

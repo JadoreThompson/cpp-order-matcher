@@ -1,5 +1,6 @@
+#include <iostream>
+#include <iomanip>
 #include <thread>
-#include "iostream"
 #include "orderbook.h"
 #include "order.h"
 
@@ -14,9 +15,6 @@ OrderBook::OrderBook(const std::string instrument, const float price)
     : m_instrument(instrument), m_price(price), m_last_price(price) {};
 
 // Returns the book that the order should be matched against.
-// std::map<float, std::list<Order *>> &OrderBook::get_book(const Order &order)
-// std::map<float, std::list<std::shared_ptr<Order> &>> &OrderBook::get_book(const Order &order)
-// std::map<float, std::list<std::reference_wrapper<std::shared_ptr<Order>>>> &OrderBook::get_book(const Order &order)
 std::map<float, std::list<std::shared_ptr<Order>>> &OrderBook::get_book(const Order &order)
 {
     if (order.m_tag == Tag::ENTRY)
@@ -45,7 +43,7 @@ void OrderBook::track(std::shared_ptr<Order> order)
 
     if (order->m_tag == Tag::ENTRY)
     {
-        throw std::string("Position already exists");
+        throw std::string("Position already exists.");
     }
 
     if (order->m_tag == Tag::TAKE_PROFIT)
@@ -85,6 +83,11 @@ void OrderBook::rtrack(std::shared_ptr<Order> &order)
         if (position.m_stop_loss_order)
         {
             remove_from_level(position.m_stop_loss_order);
+
+            if (order->m_payload->m_stop_loss_details.m_distance > -1.0f)
+            {
+                this->m_trailing_stop_loss_orders.erase(order);
+            }
         }
 
         if (order->m_payload->m_status == Status::PENDING)
@@ -96,43 +99,41 @@ void OrderBook::rtrack(std::shared_ptr<Order> &order)
     }
 }
 
-float OrderBook::get_price() { return this->m_price; }
+const float OrderBook::get_price() noexcept { return this->m_price; }
 
 void OrderBook::set_price(float price)
 {
+    if (price < 0.0f)
+        throw std::invalid_argument("Cannot set price below 0.");
+    
     this->m_price = price;
-    _update_trailing_stop_loss_orders(price);
+    update_trailing_stop_loss_orders(price);
     this->m_last_price = price;
 }
 
-float OrderBook::get_best_price(Side &&side)
+const float OrderBook::get_best_price(Side side) noexcept
 {
-    float best_price;
-
+    float price;
+    std::map<float, std::list<std::shared_ptr<Order>>> book;
     if (side == Side::ASK)
     {
-        best_price = this->m_asks.begin()->first;
-        return (best_price) ? best_price : this->m_price;
+        price = (this->m_asks.empty()) ? this->m_price : this->m_asks.begin()->first;
+        book = this->m_asks;
+    }
+    else
+    {
+        price = (this->m_bids.empty()) ? this->m_price : this->m_bids.rbegin()->first;
+        book = this->m_bids;
     }
 
-    return (this->m_bids.empty()) ? this->m_price : this->m_bids.begin()->first;
+    if (price < 0.0f)
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    return price;
 }
 
 void OrderBook::push_order(std::shared_ptr<Order> &order)
 {
-    // if (this->counter % 10 == 0)
-    // {
-    //     // std::cout << "Current size: " << this->m_bids.size();
-    //     std::cout
-    //         << "\n Bids: " << this->m_bids.size()
-    //         << " Asks " << this->m_asks.size()
-    //         << std::endl;
-
-    //     std::this_thread::sleep_for(std::chrono::seconds(3));
-    // }
-
-    // this->counter++;
-
     auto &book = get_book(*order);
     float price;
 
@@ -140,79 +141,103 @@ void OrderBook::push_order(std::shared_ptr<Order> &order)
     {
         price = order->m_payload->m_entry_price;
     }
-    else
+    else if (order->m_tag == Tag::TAKE_PROFIT)
     {
-        if (order->m_tag == Tag::TAKE_PROFIT)
+        price = order->m_payload->m_take_profit_price;
+    }
+    else if (order->m_payload->m_stop_loss_details.m_distance > -1.0f)
+    {
+        if (order->m_payload->m_side == Side::BID)
         {
-            price = order->m_payload->m_take_profit_price;
+            price = this->m_price - order->m_payload->m_stop_loss_details.m_distance;
         }
         else
         {
-            if (order->m_payload->m_side == Side::BID)
-            {
-                // price = this->m_price - order.m_payload->m_stop_loss_order->m_distance;
-                price = this->m_price - order->m_payload->m_stop_loss_order.m_distance;
-            }
-            else
-            {
-                // price = this->m_price + order.m_payload->m_stop_loss_order->m_distance;
-                price = this->m_price - order->m_payload->m_stop_loss_order.m_distance;
-            }
-
-            // this->m_trailing_stop_loss_orders.push_back(order);
-            this->m_trailing_stop_loss_orders.push_back(order);
+            price = this->m_price - order->m_payload->m_stop_loss_details.m_distance;
         }
+
+        this->m_trailing_stop_loss_orders.emplace(order);
+    }
+    else
+    {
+        price = order->m_payload->m_stop_loss_details.m_price;
     }
 
-    // book[price].push_back(order);
     book[price].push_back(order);
 }
 
-// void OrderBook::remove_from_level(Order &order)
 void OrderBook::remove_from_level(std::shared_ptr<Order> &order)
 {
+    OrderPayload &payload = *order->m_payload;
     auto &book = get_book(*order);
     float price;
 
     if (order->m_tag == Tag::ENTRY)
     {
-        price = order->m_payload->m_entry_price;
+        price = payload.m_entry_price;
     }
     else
     {
 
         if (order->m_tag == Tag::TAKE_PROFIT)
         {
-            price = order->m_payload->m_take_profit_price;
+            price = payload.m_take_profit_price;
+        }
+        else if (payload.m_stop_loss_details.m_distance > -1.0f)
+        {
+            if (payload.m_side == Side::BID)
+            {
+                price = this->m_last_price - payload.m_stop_loss_details.m_distance;
+            }
+            else
+            {
+                price = this->m_last_price + payload.m_stop_loss_details.m_distance;
+            }
         }
         else
         {
-            // if (order.m_payload->m_side == Side::BID)
-            // {
-            //     price = this->m_last_price - order.m_payload->m_stop_loss_order->m_distance;
-            // }
-            // else
-            // {
-            //     price = this->m_last_price + order.m_payload->m_stop_loss_order->m_distance;
-            // }
-
-            this->m_trailing_stop_loss_orders.remove(order);
+            price = payload.m_stop_loss_details.m_price;
         }
     }
 
     book[price].remove(order);
+    if (!book[price].size())
+        book.erase(price); // Custom implementation?
 }
 
-std::pair<int, int> OrderBook::size()
+std::pair<int, int> OrderBook::size() noexcept
 {
     return std::pair<int, int>{this->m_bids.size(), this->m_asks.size()};
 }
 
-void OrderBook::_update_trailing_stop_loss_orders(float price)
+void OrderBook::update_trailing_stop_loss_orders(float price) noexcept
 {
-    for (std::shared_ptr<Order> &order : this->m_trailing_stop_loss_orders)
+    // std::cout << "Trailing STOP LOSS" << "\n";
+
+    // for (std::shared_ptr<Order> &order : this->m_trailing_stop_loss_orders)
+    for (auto it = this->m_trailing_stop_loss_orders.begin(); it != this->m_trailing_stop_loss_orders.end(); ++it)
     {
+        std::shared_ptr<Order> order = *it;
+        // std::cout << "\t ID: " << order->m_payload->m_id << "\n";
         remove_from_level(order);
         push_order(order);
     }
+
+    // std::cout << std::endl;
+}
+
+void OrderBook::print_size(const std::map<float, std::list<std::shared_ptr<Order>>> &bids)
+{
+    std::cout << std::left << std::setw(10) << "Price" << " | " << "List Size\n";
+    std::cout << "--------------------------\n";
+
+    size_t totalSize = 0;
+    for (const auto &[price, orderList] : bids)
+    {
+        std::cout << std::left << std::setw(10) << price << " | " << orderList.size() << "\n";
+        totalSize += orderList.size();
+    }
+
+    std::cout << "--------------------------\n";
+    std::cout << "Total Orders: " << totalSize << "\n";
 }

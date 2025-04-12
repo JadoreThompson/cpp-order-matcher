@@ -6,8 +6,8 @@
 
 enum ExecutionType
 {
+    FOK,
     GTC,
-    FOK
 };
 
 enum OrderType
@@ -52,9 +52,10 @@ struct StopLossOrder
 {
     float m_price;
     float m_distance;
-    StopLossOrder(float price = 0.0f, float distance = 0.0f);
+    StopLossOrder(float price = -1.0f, float distance = -1.0f);
 };
 
+// class OrderPayload : public BasePayload
 struct OrderPayload : public BasePayload
 {
     const ExecutionType m_exec_type;
@@ -70,20 +71,18 @@ struct OrderPayload : public BasePayload
     float m_realised_pnl;
     float m_unrealised_pnl;
     int m_standing_quantity;
-    // std::unique_ptr<StopLossOrder> m_stop_loss_order;
-    StopLossOrder m_stop_loss_order;
+    StopLossOrder m_stop_loss_details;
 
     OrderPayload(
         const int id,
         const std::string instrument,
+        const ExecutionType exec_type,
         const OrderType order_type,
         const Side side,
         const int quantity,
         float entry_price,
-        const ExecutionType exec_type = GTC,
-        // std::unique_ptr<StopLossOrder> stop_loss_order = nullptr,
-        StopLossOrder stop_loss_order = {},
-        float take_profit_price = 0.0f);
+        StopLossOrder stop_loss_details = {},
+        float take_profit_price = -1.0f);
 
     // void set_status(Status status);
 
@@ -92,6 +91,8 @@ struct OrderPayload : public BasePayload
     // void set_filled_price(float price);
 
     // float get_filled_price();
+
+    std::string to_string();
 };
 
 struct CancelOrderPayload : public BasePayload
@@ -104,14 +105,16 @@ struct ModifyOrderPayload : public BasePayload
 {
 public:
     const float m_stop_loss_price;
+    const float m_stop_loss_distance;
     const float m_take_profit_price;
-    const float m_entry_price;
+    const float m_entry_price; // New desired limit price
     ModifyOrderPayload(
         const int id,
         const std::string instrument,
-        const float stop_loss_price = 0.0f,
-        const float take_profit_price = 0.0f,
-        const float limit_price = 0.0f);
+        const float m_stop_loss_distance = -1.0f,
+        const float stop_loss_price = -1.0f,
+        const float take_profit_price = -1.0f,
+        const float entry_price = -1.0f);
 };
 
 struct QueuePayload
@@ -143,52 +146,22 @@ private:
     QueuePayload &operator=(const QueuePayload &other);
 };
 
-// struct BaseOrder
-// {
-// public:
-//     const Tag m_tag;
-//     BaseOrder(const Tag m_tag);
-// };
-
-// struct EntryOrder : public BaseOrder
-// {
-// public:
-//     std::unique_ptr<OrderPayload> m_payload;
-//     EntryOrder(const Tag m_tag, std::unique_ptr<OrderPayload> payload);
-// };
-
-// // Represents StopLoss and TakeProfit orders
-// struct ExitOrder : public BaseOrder
-// {
-// public:
-//     std::unique_ptr<OrderPayload> &m_payload;
-//     ExitOrder(const Tag m_tag, std::unique_ptr<OrderPayload> &payload);
-// };
-
-class Order
+struct Order
 {
 public:
     const Tag m_tag;
     std::shared_ptr<OrderPayload> m_payload;
     Order(const Tag m_tag, std::shared_ptr<OrderPayload> payload);
+    std::string to_string();
 };
 
-class Position
+struct Position
 {
 public:
-    // Order *m_entry_order;
-    // Order *m_stop_loss_order = nullptr;
-    // Order *m_take_profit_order = nullptr;
-
-    // std::unique_ptr<EntryOrder> m_entry_order;
-    // std::unique_ptr<ExitOrder> m_stop_loss_order = nullptr;
-    // std::unique_ptr<ExitOrder> m_take_profit_order = nullptr;
-
     std::shared_ptr<Order> m_entry_order;
     std::shared_ptr<Order> m_stop_loss_order = nullptr;
     std::shared_ptr<Order> m_take_profit_order = nullptr;
 
-    // Position(Order *entry_order);
     Position(std::shared_ptr<Order> entry_order);
 };
 

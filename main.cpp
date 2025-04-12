@@ -1,6 +1,4 @@
-#include <iostream>
 #include <thread>
-#include <math.h>
 #include <memory>
 #include "futures_engine.h"
 #include "orderbook.h"
@@ -8,6 +6,7 @@
 #include "queue.h"
 
 void handle_engine(FuturesEngine &engine, Queue &queue);
+
 void push_engine(Queue &queue);
 
 int main()
@@ -36,16 +35,25 @@ void push_engine(Queue &queue)
     for (int i = 0; i < LOOPS; i++)
     // while (true)
     {
-        QueuePayload qp{QueuePayload::Category::NEW, std::move(std::make_unique<OrderPayload>(
-                                                         i,
-                                                         "APPL",
-                                                         OrderType::MARKET,
-                                                         sides[std::rand() % 2],
-                                                         std::rand() % 10 + 1,
-                                                         std::rand() % 50 + 1,
-                                                         // NewOrderPayload::ExecutionType::FOK);
-                                                         ExecutionType::GTC))};
-        queue.push(std::move(qp));
+        try
+        {
+
+            QueuePayload qp{QueuePayload::Category::NEW,
+                            std::make_unique<OrderPayload>(
+                                i,
+                                "APPL",
+                                ExecutionType::GTC,
+                                OrderType::MARKET,
+                                sides[std::rand() % 2],
+                                std::rand() % 30 + 1,
+                                std::rand() % 50 + 1,
+                                // StopLossOrder(std::rand() % 100 + 1))};
+                                StopLossOrder())};
+            queue.push(std::move(qp));
+        }
+        catch (const std::string &e)
+        {
+        }
         // i++;
     }
 }

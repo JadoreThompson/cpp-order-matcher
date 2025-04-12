@@ -1,7 +1,9 @@
 #include <chrono>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <numeric>
+#include <thread>
 #include <vector>
 #include "futures_engine.h"
 #include "order.h"
@@ -18,65 +20,79 @@ MatchResult::MatchResult(
 
 MatchResult::MatchResult() : m_result_set(false), m_price(-1) {};
 
-// void MatchResult::set_result_type(const MatchResultType result_type)
-// {
-//     {
-//         if (this->m_result_set)
-//         {
-//             throw std::string("Cannot set result on MatchResult once it's already set");
-//         }
-
-//         this->m_result_type = result_type;
-//         this->m_result_set = true;
-//     }
-// }
-
-// const MatchResult::MatchResultType &MatchResult::get_result_type() const
-// {
-//     if (!this->m_result_set)
-//     {
-//         throw std::string("Result not set");
-//     }
-
-//     return this->m_result_type;
-// }
-
-void FuturesEngine::start(Queue &queue)
+void FuturesEngine::start(Queue &queue) noexcept
 {
     this->orderbooks.emplace("APPL", OrderBook("APPL", 50.0f));
+    const std::map<QueuePayload::Category, std::function<void(std::unique_ptr<BasePayload>)>> handlers = {
+        {QueuePayload::Category::NEW, [this](std::unique_ptr<BasePayload> param)
+         { handle_new_order(std::move(param)); }},
+        {QueuePayload::Category::CANCEL, [this](std::unique_ptr<BasePayload> param)
+         { handle_cancel_order(std::move(param)); }},
+        {QueuePayload::Category::MODIFY, [this](std::unique_ptr<BasePayload> param)
+         { handle_modify_order(std::move(param)); }},
+        {QueuePayload::Category::CLOSE, [this](std::unique_ptr<BasePayload> param)
+         { handle_close_order(std::move(param)); }},
+    };
     const std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
 
     for (int _ = 0; _ < LOOPS; _++)
     // while (true)
     {
         QueuePayload message = queue.get();
-
-        if (message.m_category == QueuePayload::Category::NEW)
-        {
-            std::shared_ptr<OrderPayload> payload(static_cast<OrderPayload *>(message.m_payload.release()));
-
-            if (payload->m_order_type == OrderType::LIMIT)
-            {
-                place_limit_order(std::move(payload));
-            }
-            else if (payload->m_exec_type == ExecutionType::GTC)
-            {
-                // place_gtc_market_order(order);
-                place_gtc_market_order(std::move(payload));
-            }
-            else
-            {
-                // place_fok_market_order(order);
-                place_fok_market_order(std::move(payload));
-            }
-        }
+        handlers.at(message.m_category)(std::move(message.m_payload));
     }
 
-    std::cout << "Time Taken (seconds): " << std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start_time).count() << std::endl;
+    const double tts = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start_time).count();
+
+    std::cout << "Time Taken (seconds): " << tts << "\n";
+    std::cout << "Time Taken (nano-seconds): " << tts * 1e9 << "\n";
+    std::cout << "Average Time (nano-seconds): " << tts / LOOPS * 1e9 << std::endl;
+
+    // std::cout << "\n";
+
+    // OrderBook &ob = this->orderbooks.at("APPL");
+    // std::cout << "\n\tAsks\n";
+    // ob.print_size(ob.m_asks);
+    // std::cout << "\n\n\tBids\n";
+    // ob.print_size(ob.m_bids);
+    // std::cout << "\n";
+    // std::cout << "Tracker Size: " << ob.m_tracker.size();
+}
+
+void FuturesEngine::handle_new_order(std::unique_ptr<BasePayload> message_payload) noexcept
+{
+    std::shared_ptr<OrderPayload> payload(static_cast<OrderPayload *>(message_payload.release()));
+
+    if (payload->m_order_type == OrderType::LIMIT)
+    {
+        place_limit_order(std::move(payload));
+    }
+    else if (payload->m_exec_type == ExecutionType::GTC)
+    {
+        place_gtc_market_order(std::move(payload));
+    }
+    else
+    {
+        place_fok_market_order(std::move(payload));
+    }
+}
+
+void FuturesEngine::handle_cancel_order(std::unique_ptr<BasePayload> message_payload) noexcept
+{
+    cancel_order(std::move(message_payload));
+}
+
+void FuturesEngine::handle_modify_order(std::unique_ptr<BasePayload> message_payload) noexcept
+{
+    modify_order(*static_cast<ModifyOrderPayload *>(message_payload.release()));
+}
+
+void FuturesEngine::handle_close_order(std::unique_ptr<BasePayload> message_payload) noexcept
+{
+    close_order(message_payload);
 }
 
 void FuturesEngine::place_fok_market_order(std::shared_ptr<OrderPayload> &&payloadp)
-// void FuturesEngine::place_fok_market_order(OrderPayload &payload_p)
 {
     OrderBook &orderbook = this->orderbooks.at(payloadp->m_instrument);
     Position &position = orderbook.declare(payloadp);
@@ -96,13 +112,12 @@ void FuturesEngine::place_fok_market_order(std::shared_ptr<OrderPayload> &&paylo
     }
 }
 
-void FuturesEngine::place_gtc_market_order(std::shared_ptr<OrderPayload> &&payloadp)
-// void FuturesEngine::place_gtc_market_order(OrderPayload &payload_p)
+void FuturesEngine::place_gtc_market_order(std::shared_ptr<OrderPayload> payloadp)
 {
     OrderBook &orderbook = this->orderbooks.at(payloadp->m_instrument);
     Position &position = orderbook.declare(payloadp);
     Order &order = *position.m_entry_order;
-    const MatchResult result = match_gtc(*position.m_entry_order, orderbook);
+    const MatchResult result = match_gtc(order, orderbook);
 
     if (result.m_result_type == MatchResult::MatchResultType::SUCCESS)
     {
@@ -121,158 +136,43 @@ void FuturesEngine::place_gtc_market_order(std::shared_ptr<OrderPayload> &&paylo
             // order.m_payload->set_status(Status::PARTIALLY_FILLED);
             order.m_payload->m_status = Status::PARTIALLY_FILLED;
         }
+
         orderbook.push_order(position.m_entry_order);
     }
 }
 
 void FuturesEngine::place_limit_order(std::shared_ptr<OrderPayload> &&payloadp)
-// void FuturesEngine::place_limit_order(OrderPayload &payload)
 {
-    // std::cout << "Placing limit order" << std::to_string(payloadp->m_id) << std::endl;
     OrderBook &orderbook = this->orderbooks.at(payloadp->m_instrument);
     orderbook.push_order(orderbook.declare(payloadp).m_entry_order);
 }
 
-void FuturesEngine::cancel_order(std::shared_ptr<BasePayload> &payload)
+void FuturesEngine::cancel_order(std::unique_ptr<BasePayload> payload)
 {
-
     OrderBook &orderbook = this->orderbooks.at(payload->m_instrument);
     Position &pos = orderbook.get_position(payload->m_id);
 
     if (pos.m_entry_order->m_payload->m_status != Status::PENDING)
     {
-        throw std::string("Cancel can only be done on PENDING orders");
+        throw std::string("Cancel can only be done on Status::PENDING orders.");
     }
 
     orderbook.rtrack(pos.m_entry_order);
 }
 
-void FuturesEngine::modify_order(std::shared_ptr<ModifyOrderPayload> &&payloadp)
+void FuturesEngine::modify_order(ModifyOrderPayload &payload) noexcept
 {
-    OrderBook &orderbook = this->orderbooks.at(payloadp->m_instrument);
-    Position &position = orderbook.get_position(payloadp->m_id);
-
-    if (payloadp->m_stop_loss_price == 0.0f)
-    {
-        if (position.m_stop_loss_order)
-        {
-            orderbook.remove_from_level(position.m_stop_loss_order);
-        }
-    }
-    else
-    {
-        // if (position.m_entry_order->m_payload->m_stop_loss_order != nullptr)
-        // {
-        //     if (payloadp->m_stop_loss_price != position.m_entry_order->m_payload->m_stop_loss_order->m_price)
-        //     {
-        //         orderbook.remove_from_level(*position.m_stop_loss_order);
-        //         delete position.m_stop_loss_order;
-        //     }
-
-        //     position.m_entry_order->m_payload->m_stop_loss_order->m_price = payloadp->m_stop_loss_price;
-        // }
-        // else
-        // {
-        //     position.m_entry_order->m_payload->m_stop_loss_order = std::make_unique<StopLossOrder>(payloadp->m_stop_loss_price);
-        // }
-
-        // position.m_stop_loss_order = new Order(position.m_entry_order->m_payload, Order::Tag::STOP_LOSS);
-        // orderbook.push_order(*position.m_stop_loss_order);
-    }
-
-    if (payloadp->m_take_profit_price == 0.0f)
-    {
-        if (position.m_take_profit_order)
-        {
-            orderbook.remove_from_level(position.m_take_profit_order);
-        }
-    }
-    else
-    {
-        if (position.m_entry_order->m_payload->m_take_profit_price != 0.0f)
-        {
-            if (payloadp->m_take_profit_price != position.m_entry_order->m_payload->m_take_profit_price)
-            {
-                orderbook.remove_from_level(position.m_take_profit_order);
-                position.m_take_profit_order = nullptr;
-            }
-
-            position.m_entry_order->m_payload->m_take_profit_price = payloadp->m_take_profit_price;
-            position.m_take_profit_order = std::make_shared<Order>(Tag::TAKE_PROFIT, position.m_entry_order->m_payload);
-            orderbook.push_order(position.m_take_profit_order);
-        }
-    }
-
-    if (
-        payloadp->m_entry_price == 0.0f ||
-        position.m_entry_order->m_payload->m_order_type != OrderType::LIMIT)
-    {
-        return;
-    }
-
-    if (payloadp->m_entry_price != position.m_entry_order->m_payload->m_entry_price)
-    {
-        orderbook.remove_from_level(position.m_entry_order);
-        position.m_entry_order = nullptr;
-        position.m_entry_order->m_payload->m_entry_price = payloadp->m_entry_price;
-        position.m_entry_order = std::make_shared<Order>(Tag::ENTRY, position.m_entry_order->m_payload);
-        orderbook.push_order(position.m_entry_order);
-    }
+    OrderBook &orderbook = this->orderbooks.at(payload.m_instrument);
+    Position &position = orderbook.get_position(payload.m_id);
+    modify_entry(payload, position, orderbook);
+    modify_stop_loss(payload, position, orderbook);
+    modify_take_profit(payload, position, orderbook);
 }
 
-void FuturesEngine::close_order(std::shared_ptr<BasePayload> &payload)
+void FuturesEngine::close_order(std::unique_ptr<BasePayload> &payload)
 {
     OrderBook &orderbook = this->orderbooks.at(payload->m_instrument);
-    Position &pos = orderbook.get_position(payload->m_id);
-    orderbook.rtrack(pos.m_entry_order);
-}
-
-const MatchResult FuturesEngine::match_gtc(Order &order, OrderBook &orderbook)
-{
-    const int og_standing_quantity = order.m_payload->m_standing_quantity;
-    std::vector<std::pair<std::shared_ptr<Order> &, int>> touched;
-    std::vector<std::pair<std::shared_ptr<Order> &, int>> filled;
-    const float best_price = orderbook.get_best_price((order.m_payload->m_side == Side::ASK) ? Side::BID : Side::ASK);
-    MatchResult result;
-    // MatchResult result;
-
-    // auto &book = orderbook.get_book(order);
-
-    // for (Order *&ex_order_p : book[best_price])
-    // for (Order *&ex_order_p : orderbook.get_book(order)[best_price])
-    for (std::shared_ptr<Order> &ex_orderp : orderbook.get_book(order)[best_price])
-    {
-        const int ex_order_pre_standing_quantity = ex_orderp->m_payload->m_standing_quantity;
-        const int reduce_amount = std::min(order.m_payload->m_standing_quantity, ex_order_pre_standing_quantity);
-        ex_orderp->m_payload->m_standing_quantity -= reduce_amount;
-        order.m_payload->m_standing_quantity -= reduce_amount;
-
-        if (ex_orderp->m_payload->m_standing_quantity == 0)
-        {
-            filled.push_back(std::pair<std::shared_ptr<Order> &, int>{ex_orderp, ex_order_pre_standing_quantity});
-        }
-        else
-        {
-            touched.push_back(std::pair<std::shared_ptr<Order> &, int>{ex_orderp, ex_order_pre_standing_quantity});
-        }
-
-        if (order.m_payload->m_standing_quantity == 0)
-        {
-            break;
-        }
-    }
-
-    if (!touched.empty())
-    {
-        handle_touched_orders(touched, orderbook, best_price);
-    }
-
-    if (!filled.empty())
-    {
-        handle_filled_orders(filled, orderbook, best_price);
-    }
-
-    return gen_match_result(og_standing_quantity, order, best_price);
+    orderbook.rtrack(orderbook.get_position(payload->m_id).m_entry_order);
 }
 
 // Only to be used on Tag::ENTRY orders
@@ -280,7 +180,6 @@ const MatchResult FuturesEngine::match_fok(Order &order, OrderBook &orderbook)
 {
     const int og_standing_quantity = order.m_payload->m_standing_quantity;
     auto &book = orderbook.get_book(order);
-    // std::vector<std::tuple<Order *&, int, int>> touched_order_collection;
     std::vector<std::tuple<std::shared_ptr<Order> &, int, int>> touched_order_collection;
 
     for (std::shared_ptr<Order> &ex_orderp : book[order.m_payload->m_entry_price])
@@ -330,29 +229,61 @@ const MatchResult FuturesEngine::match_fok(Order &order, OrderBook &orderbook)
     return gen_match_result(og_standing_quantity, order, order.m_payload->m_entry_price);
 }
 
-const MatchResult FuturesEngine::gen_match_result(const float og_standing_quantity, Order &order, const float price)
+const MatchResult FuturesEngine::match_gtc(Order &order, OrderBook &orderbook)
 {
+    const int og_standing_quantity = order.m_payload->m_standing_quantity;
+    std::vector<std::pair<std::shared_ptr<Order> &, int>> touched;
+    std::vector<std::pair<std::shared_ptr<Order> &, int>> filled;
+    const float best_price = orderbook.get_best_price((order.m_payload->m_side == Side::ASK) ? Side::BID : Side::ASK);
     MatchResult result;
 
-    if (order.m_payload->m_standing_quantity == 0)
+    // std::cout << "Received best price " << best_price << std::endl;
+
+    try
     {
-        // result.set_result_type(MatchResult::MatchResultType::SUCCESS);
-        result.m_result_type = MatchResult::MatchResultType::SUCCESS;
-        result.m_price = price;
+        for (std::shared_ptr<Order> &ex_orderp : orderbook.get_book(order).at(best_price))
+        {
+            const int ex_order_pre_standing_quantity = ex_orderp->m_payload->m_standing_quantity;
+            const int reduce_amount = std::min(order.m_payload->m_standing_quantity, ex_order_pre_standing_quantity);
+            ex_orderp->m_payload->m_standing_quantity -= reduce_amount;
+            order.m_payload->m_standing_quantity -= reduce_amount;
+
+            if (ex_orderp->m_payload->m_standing_quantity == 0)
+            {
+                filled.push_back(std::pair<std::shared_ptr<Order> &, int>{ex_orderp, ex_order_pre_standing_quantity});
+            }
+            else
+            {
+                touched.push_back(std::pair<std::shared_ptr<Order> &, int>{ex_orderp, ex_order_pre_standing_quantity});
+            }
+
+            if (order.m_payload->m_standing_quantity == 0)
+            {
+                break;
+            }
+        }
+
+        if (touched.size() > 1 || filled.size() > 1)
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+
+        if (!touched.empty())
+        {
+            handle_touched_orders(touched, orderbook, best_price);
+        }
+
+        if (!filled.empty())
+        {
+            handle_filled_orders(filled, orderbook, best_price);
+        }
     }
-    else if (order.m_payload->m_standing_quantity == og_standing_quantity)
+    catch (const std::out_of_range &e)
     {
-        result.m_result_type = MatchResult::MatchResultType::FAILURE;
-    }
-    else
-    {
-        result.m_result_type = MatchResult::MatchResultType::PARTIAL;
+        // std::cerr << e.what() << " Price: " << best_price << std::endl;
     }
 
-    return result;
+    return gen_match_result(og_standing_quantity, order, best_price);
 }
 
-// void FuturesEngine::handle_filled_orders(std::vector<std::pair<Order *, int>> &orders, OrderBook &orderbook, const float price)
 void FuturesEngine::handle_filled_orders(std::vector<std::pair<std::shared_ptr<Order> &, int>> &orders, OrderBook &orderbook, const float price)
 {
     for (auto &pair : orders)
@@ -371,13 +302,12 @@ void FuturesEngine::handle_filled_orders(std::vector<std::pair<std::shared_ptr<O
         }
         else
         {
-            calc_upl(order, pair.second, price);
+            calc_upl(*order.m_payload, pair.second, price);
             orderbook.rtrack(orderbook.get_position(order.m_payload->m_id).m_entry_order);
         }
     }
 }
 
-// void FuturesEngine::handle_touched_orders(std::vector<std::pair<Order *, int>> &orders, OrderBook &orderbook, const float price)
 void FuturesEngine::handle_touched_orders(std::vector<std::pair<std::shared_ptr<Order> &, int>> &orders, OrderBook &orderbook, const float price)
 {
     for (auto &pair : orders)
@@ -391,7 +321,7 @@ void FuturesEngine::handle_touched_orders(std::vector<std::pair<std::shared_ptr<
         }
         else
         {
-            calc_upl(order, pair.second, price);
+            calc_upl(*order.m_payload, pair.second, price);
 
             if (order.m_payload->m_status == Status::CLOSED)
             {
@@ -409,18 +339,94 @@ void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook)
 {
     Position &pos = orderbook.get_position(order.m_payload->m_id);
 
-    if (order.m_payload->m_take_profit_price != 0.0f)
+    if (order.m_payload->m_take_profit_price != -1.0f)
     {
         std::shared_ptr<Order> tp_order = std::make_shared<Order>(Tag::TAKE_PROFIT, order.m_payload);
         orderbook.track(tp_order);
         orderbook.push_order((tp_order));
     }
 
-    if (order.m_payload->m_stop_loss_order.m_price != 0.0f ||
-        order.m_payload->m_stop_loss_order.m_distance != 0.0f)
+    if (order.m_payload->m_stop_loss_details.m_price > -1.0f ||
+        order.m_payload->m_stop_loss_details.m_distance > -1.0f)
     {
-        std::shared_ptr<Order> sl_order = std::make_shared<Order>(order.m_payload, Tag::STOP_LOSS);
+        std::shared_ptr<Order> sl_order = std::make_shared<Order>(Tag::STOP_LOSS, order.m_payload);
         orderbook.track(sl_order);
         orderbook.push_order(sl_order);
+    }
+}
+
+const MatchResult FuturesEngine::gen_match_result(const float og_standing_quantity, Order &order, const float price)
+{
+    MatchResult result;
+
+    if (order.m_payload->m_standing_quantity == 0)
+    {
+        result.m_result_type = MatchResult::MatchResultType::SUCCESS;
+        result.m_price = price;
+    }
+    else if (order.m_payload->m_standing_quantity == og_standing_quantity)
+    {
+        result.m_result_type = MatchResult::MatchResultType::FAILURE;
+    }
+    else
+    {
+        result.m_result_type = MatchResult::MatchResultType::PARTIAL;
+    }
+
+    return result;
+}
+
+void FuturesEngine::modify_entry(ModifyOrderPayload &payload, Position &position, OrderBook &orderbook)
+{
+    if (position.m_entry_order->m_payload->m_status != Status::PENDING)
+        return;
+
+    orderbook.remove_from_level(position.m_entry_order);
+    position.m_entry_order = std::make_shared<Order>(Tag::ENTRY, position.m_entry_order->m_payload);
+}
+
+void FuturesEngine::modify_stop_loss(ModifyOrderPayload &payload, Position &position, OrderBook &orderbook) noexcept
+{
+    std::shared_ptr<OrderPayload> &order_payload = position.m_entry_order->m_payload;
+
+    if (payload.m_stop_loss_distance > -1.0f)
+    {
+        if (payload.m_stop_loss_distance != order_payload->m_stop_loss_details.m_distance)
+        {
+            order_payload->m_stop_loss_details.m_distance = payload.m_stop_loss_distance;
+        }
+
+        return;
+    }
+
+    if (order_payload->m_status < Status::FILLED ||
+        payload.m_stop_loss_price == order_payload->m_stop_loss_details.m_price)
+        return;
+
+    if (position.m_stop_loss_order)
+        orderbook.remove_from_level(position.m_stop_loss_order);
+
+    if (payload.m_stop_loss_price > -1.0f)
+    {
+        position.m_stop_loss_order = std::make_shared<Order>(Tag::STOP_LOSS, position.m_entry_order->m_payload);
+        orderbook.push_order(position.m_stop_loss_order);
+    }
+}
+
+void FuturesEngine::modify_take_profit(ModifyOrderPayload &payload, Position &position, OrderBook &orderbook)
+{
+    std::shared_ptr<OrderPayload> &order_payload = position.m_entry_order->m_payload;
+
+    if (order_payload->m_status < Status::FILLED ||
+        payload.m_take_profit_price == order_payload->m_take_profit_price)
+        return;
+
+    if (position.m_take_profit_order)
+        orderbook.remove_from_level(position.m_take_profit_order);
+
+    if (payload.m_take_profit_price > -1.0f)
+    {
+        position.m_take_profit_order = std::make_shared<Order>(Tag::TAKE_PROFIT, position.m_entry_order->m_payload);
+        orderbook.push_order(position.m_take_profit_order);
     }
 }

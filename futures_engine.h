@@ -6,7 +6,7 @@
 #include "orderbook.h"
 #include "queue.h"
 
-const int LOOPS = 1'000'000;
+constexpr int LOOPS = 1e6;
 
 struct MatchResult
 {
@@ -33,43 +33,47 @@ private:
 class FuturesEngine
 {
 public:
-    void start(Queue &queue);
+    void start(Queue &queue) noexcept;
 
-    // void place_fok_market_order(OrderPayload &payload);
-    // void place_fok_market_order(std::unique_ptr<OrderPayload> &payload);
+    void handle_new_order(std::unique_ptr<BasePayload> message_payload) noexcept;
+
+    void handle_cancel_order(std::unique_ptr<BasePayload> message_payload) noexcept;
+
+    void handle_modify_order(std::unique_ptr<BasePayload> message_payload) noexcept;
+
+    void handle_close_order(std::unique_ptr<BasePayload> message_payload) noexcept;
+
     void place_fok_market_order(std::shared_ptr<OrderPayload> &&payloadp);
 
-    // void place_gtc_market_order(OrderPayload &payload);
-    // void place_gtc_market_order(std::unique_ptr<OrderPayload> &payload);
-    void place_gtc_market_order(std::shared_ptr<OrderPayload> &&payloadp);
+    void place_gtc_market_order(std::shared_ptr<OrderPayload> payloadp);
 
-    // void place_limit_order(OrderPayload &payload);
-    // void place_limit_order(std::unique_ptr<OrderPayload> &payload);
     void place_limit_order(std::shared_ptr<OrderPayload> &&payloadp);
 
-    void cancel_order(std::shared_ptr<BasePayload> &payload);
+    void cancel_order(std::unique_ptr<BasePayload> payload);
 
-    void modify_order(std::shared_ptr<ModifyOrderPayload> &&payload);
+    void modify_order(ModifyOrderPayload &payload) noexcept;
 
-    void close_order(std::shared_ptr<BasePayload> &payload);
+    void close_order(std::unique_ptr<BasePayload> &payload);
 
     const MatchResult match_fok(Order &order, OrderBook &orderbook);
-    // const MatchResult match_fok(std::shared_ptr<Order> &order, OrderBook &orderbook);
 
     const MatchResult match_gtc(Order &order, OrderBook &orderbook);
-    // const MatchResult match_gtc(std::shared_ptr<Order> &order, OrderBook &orderbook)
 
-    const MatchResult gen_match_result(const float og_standing_quantity, Order &order, const float price);
-
-    // void handle_filled_orders(std::vector<std::pair<Order *, int>> &orders, OrderBook &orderbook, const float price);
     void handle_filled_orders(std::vector<std::pair<std::shared_ptr<Order> &, int>> &orders, OrderBook &orderbook, const float price);
 
-    // void handle_touched_orders(std::vector<std::pair<Order *, int>> &orders, OrderBook &orderbook, const float price);
     void handle_touched_orders(std::vector<std::pair<std::shared_ptr<Order> &, int>> &orders, OrderBook &orderbook, const float price);
 
     void place_tp_sl(Order &order, OrderBook &orderbook);
 
 private:
+    const MatchResult gen_match_result(const float og_standing_quantity, Order &order, const float price);
+
+    void modify_entry(ModifyOrderPayload &payload, Position &position, OrderBook &orderbook);
+
+    void modify_stop_loss(ModifyOrderPayload &payload, Position &position, OrderBook &orderbook) noexcept;
+
+    void modify_take_profit(ModifyOrderPayload &payload, Position &position, OrderBook &orderbook);
+
     std::map<const std::string, OrderBook> orderbooks;
 };
 #endif

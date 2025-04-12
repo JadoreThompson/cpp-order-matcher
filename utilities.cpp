@@ -14,22 +14,16 @@ float calc_buy_pl(const float amount, const float open_price, const float close_
 /// @param order
 /// @param standing_quantity: Standing quantity of order pre match subtractions
 /// @param price
-void calc_upl(Order &order, const float standing_quantity, const float price)
+void calc_upl(OrderPayload &payload, const float standing_quantity, const float price) noexcept
 {
-    float filled_price;
-    // try
-    // {
-    //     filled_price = order.m_payload->get_filled_price();
-    // }
-    // catch (const std::string &e)
-    // {
-    //     return;
-    // }
+    if (payload.m_filled_price == 1.0f)
+        return;
 
+    const float filled_price = payload.m_filled_price;
     const float pos_value = filled_price * standing_quantity;
     float upl;
 
-    if (order.m_payload->m_side == Side::ASK)
+    if (payload.m_side == Side::ASK)
     {
         upl = calc_sell_pl(pos_value, filled_price, price);
     }
@@ -44,10 +38,10 @@ void calc_upl(Order &order, const float standing_quantity, const float price)
     {
         if (new_upl <= -pos_value)
         {
-            // order.m_payload->set_status(Status::CLOSED);
-            order.m_payload->m_closed_price = price;
-            order.m_payload->m_standing_quantity = order.m_payload->m_unrealised_pnl = 0;
-            order.m_payload->m_realised_pnl += new_upl;
+            // payload.set_status(Status::CLOSED);
+            payload.m_closed_price = price;
+            payload.m_standing_quantity = payload.m_unrealised_pnl = 0;
+            payload.m_realised_pnl += new_upl;
         }
     }
 }
