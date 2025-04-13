@@ -92,13 +92,7 @@ struct OrderPayload : public BasePayload
 
     // float get_filled_price();
 
-    std::string to_string();
-};
-
-struct CancelOrderPayload : public BasePayload
-{
-public:
-    CancelOrderPayload(const int id, const std::string instrument);
+    std::string to_string() noexcept;
 };
 
 struct ModifyOrderPayload : public BasePayload
@@ -152,7 +146,7 @@ public:
     const Tag m_tag;
     std::shared_ptr<OrderPayload> m_payload;
     Order(const Tag m_tag, std::shared_ptr<OrderPayload> payload);
-    std::string to_string();
+    std::string to_string() noexcept;
 };
 
 struct Position

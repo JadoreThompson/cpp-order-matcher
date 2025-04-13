@@ -4,13 +4,13 @@ An implementation of a FIFO matching engine in C++ 14. This implements two execu
 
 Validation logic like checking for minimum and null values are beign ignored as they'd be performed on the server. Of which you can find an example of those checks at https://github.com/JadoreThompson/order-matcher
 
-Current performance
+Performance
 
-| Topic                    | Loop Size | Total Time (s) | Avg Time (ns) |
-| ------------------------ | --------- | -------------- | ------------- |
-| Queue                    | 1,000,000 | 0.538621       | 538.621       |
-| GTC (Good-Til-Cancelled) | 1,000,000 | 0.550012       | 550.012       |
-| FOK (Fill-Or-Kill)       | 1,000,000 | 0.53078        | 530.78        |
+| Topic                                      | Loop Size | Total Time (s) | Avg Time (ns) |
+| ------------------------------------------ | --------- | -------------- | ------------- |
+| Queue                                      | 1,000,000 | 0.483688       | 483.688       |
+| GTC (Good-Til-Cancelled) (Queue Inclusive) | 1,000,000 | 1.089396       | 1089.396      |
+| FOK (Fill-Or-Kill) (Queue Inclusivev)      | 1,000,000 | 0.678202       | 678.202       |
 
 # **Requirements**
 

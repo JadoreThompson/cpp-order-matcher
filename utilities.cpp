@@ -1,11 +1,11 @@
 #include "utilities.h"
 
-float calc_sell_pl(const float amount, const float open_price, const float close_price)
+float calc_sell_pl(const float amount, const float open_price, const float close_price) noexcept
 {
     return round(100 * (amount * 1 + (open_price - close_price) / open_price)) / 100;
 }
 
-float calc_buy_pl(const float amount, const float open_price, const float close_price)
+float calc_buy_pl(const float amount, const float open_price, const float close_price) noexcept
 {
     return round(100 * (close_price / open_price * amount)) / 100;
 }
@@ -39,6 +39,7 @@ void calc_upl(OrderPayload &payload, const float standing_quantity, const float 
         if (new_upl <= -pos_value)
         {
             // payload.set_status(Status::CLOSED);
+            payload.m_status = Status::CLOSED;
             payload.m_closed_price = price;
             payload.m_standing_quantity = payload.m_unrealised_pnl = 0;
             payload.m_realised_pnl += new_upl;

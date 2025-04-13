@@ -15,10 +15,11 @@ MatchResult::MatchResult(
     const MatchResultType result_type_,
     int price)
     : m_result_type(result_type_),
-      m_result_set(true),
+      //   m_result_set(true),
       m_price(price) {};
 
-MatchResult::MatchResult() : m_result_set(false), m_price(-1) {};
+MatchResult::MatchResult() : // m_result_set(false),
+                             m_price(-1) {};
 
 void FuturesEngine::start(Queue &queue) noexcept
 {
@@ -92,7 +93,7 @@ void FuturesEngine::handle_close_order(std::unique_ptr<BasePayload> message_payl
     close_order(message_payload);
 }
 
-void FuturesEngine::place_fok_market_order(std::shared_ptr<OrderPayload> &&payloadp)
+void FuturesEngine::place_fok_market_order(std::shared_ptr<OrderPayload> &&payloadp) noexcept
 {
     OrderBook &orderbook = this->orderbooks.at(payloadp->m_instrument);
     Position &position = orderbook.declare(payloadp);
@@ -103,6 +104,8 @@ void FuturesEngine::place_fok_market_order(std::shared_ptr<OrderPayload> &&paylo
         payloadp->m_standing_quantity = payloadp->m_quantity;
         // payload_p->set_status(Status::FILLED);
         // payload_p->set_filled_price(result.m_price);
+        payloadp->m_status = Status::FILLED;
+        payloadp->m_filled_price = result.m_price;
         place_tp_sl(*position.m_entry_order, orderbook);
         orderbook.set_price(result.m_price);
     }
@@ -112,7 +115,7 @@ void FuturesEngine::place_fok_market_order(std::shared_ptr<OrderPayload> &&paylo
     }
 }
 
-void FuturesEngine::place_gtc_market_order(std::shared_ptr<OrderPayload> payloadp)
+void FuturesEngine::place_gtc_market_order(std::shared_ptr<OrderPayload> payloadp) noexcept
 {
     OrderBook &orderbook = this->orderbooks.at(payloadp->m_instrument);
     Position &position = orderbook.declare(payloadp);
@@ -141,13 +144,13 @@ void FuturesEngine::place_gtc_market_order(std::shared_ptr<OrderPayload> payload
     }
 }
 
-void FuturesEngine::place_limit_order(std::shared_ptr<OrderPayload> &&payloadp)
+void FuturesEngine::place_limit_order(std::shared_ptr<OrderPayload> &&payloadp) noexcept
 {
     OrderBook &orderbook = this->orderbooks.at(payloadp->m_instrument);
     orderbook.push_order(orderbook.declare(payloadp).m_entry_order);
 }
 
-void FuturesEngine::cancel_order(std::unique_ptr<BasePayload> payload)
+void FuturesEngine::cancel_order(const std::unique_ptr<BasePayload> payload)
 {
     OrderBook &orderbook = this->orderbooks.at(payload->m_instrument);
     Position &pos = orderbook.get_position(payload->m_id);
@@ -160,7 +163,7 @@ void FuturesEngine::cancel_order(std::unique_ptr<BasePayload> payload)
     orderbook.rtrack(pos.m_entry_order);
 }
 
-void FuturesEngine::modify_order(ModifyOrderPayload &payload) noexcept
+void FuturesEngine::modify_order(const ModifyOrderPayload &payload) noexcept
 {
     OrderBook &orderbook = this->orderbooks.at(payload.m_instrument);
     Position &position = orderbook.get_position(payload.m_id);
@@ -169,20 +172,22 @@ void FuturesEngine::modify_order(ModifyOrderPayload &payload) noexcept
     modify_take_profit(payload, position, orderbook);
 }
 
-void FuturesEngine::close_order(std::unique_ptr<BasePayload> &payload)
+void FuturesEngine::close_order(const std::unique_ptr<BasePayload> &payload) noexcept
 {
     OrderBook &orderbook = this->orderbooks.at(payload->m_instrument);
     orderbook.rtrack(orderbook.get_position(payload->m_id).m_entry_order);
 }
 
-// Only to be used on Tag::ENTRY orders
-const MatchResult FuturesEngine::match_fok(Order &order, OrderBook &orderbook)
+// Only call with Tag::ENTRY order
+const MatchResult FuturesEngine::match_fok(Order &order, OrderBook &orderbook) noexcept
 {
     const int og_standing_quantity = order.m_payload->m_standing_quantity;
-    auto &book = orderbook.get_book(order);
+    const float best_price = orderbook.get_best_price((order.m_payload->m_side == Side::ASK) ? Side::BID : Side::ASK);
+    std::vector<std::pair<std::shared_ptr<Order> &, int>> touched;
+    std::vector<std::pair<std::shared_ptr<Order> &, int>> filled;
     std::vector<std::tuple<std::shared_ptr<Order> &, int, int>> touched_order_collection;
 
-    for (std::shared_ptr<Order> &ex_orderp : book[order.m_payload->m_entry_price])
+    for (std::shared_ptr<Order> &ex_orderp : orderbook.get_book(order)[best_price])
     {
         const int ex_order_pre_standing_quantity = ex_orderp->m_payload->m_standing_quantity;
         const int reduce_amount = std::min(order.m_payload->m_standing_quantity, ex_order_pre_standing_quantity);
@@ -197,9 +202,6 @@ const MatchResult FuturesEngine::match_fok(Order &order, OrderBook &orderbook)
 
     if (order.m_payload->m_standing_quantity == 0)
     {
-        std::vector<std::pair<std::shared_ptr<Order> &, int>> touched;
-        std::vector<std::pair<std::shared_ptr<Order> &, int>> filled;
-
         for (auto &tup : touched_order_collection)
         {
             std::shared_ptr<Order> &ex_order = std::get<0>(tup);
@@ -217,30 +219,28 @@ const MatchResult FuturesEngine::match_fok(Order &order, OrderBook &orderbook)
 
         if (!touched.empty())
         {
-            handle_touched_orders(touched, orderbook, order.m_payload->m_entry_price);
+            handle_touched_orders(touched, orderbook, best_price);
         }
 
         if (!filled.empty())
         {
-            handle_filled_orders(filled, orderbook, order.m_payload->m_entry_price);
+            handle_filled_orders(filled, orderbook, best_price);
         }
     }
 
-    return gen_match_result(og_standing_quantity, order, order.m_payload->m_entry_price);
+    return gen_match_result(og_standing_quantity, order, best_price);
 }
 
-const MatchResult FuturesEngine::match_gtc(Order &order, OrderBook &orderbook)
+const MatchResult FuturesEngine::match_gtc(Order &order, OrderBook &orderbook) noexcept
 {
     const int og_standing_quantity = order.m_payload->m_standing_quantity;
     std::vector<std::pair<std::shared_ptr<Order> &, int>> touched;
     std::vector<std::pair<std::shared_ptr<Order> &, int>> filled;
     const float best_price = orderbook.get_best_price((order.m_payload->m_side == Side::ASK) ? Side::BID : Side::ASK);
-    MatchResult result;
-
-    // std::cout << "Received best price " << best_price << std::endl;
 
     try
     {
+
         for (std::shared_ptr<Order> &ex_orderp : orderbook.get_book(order).at(best_price))
         {
             const int ex_order_pre_standing_quantity = ex_orderp->m_payload->m_standing_quantity;
@@ -278,13 +278,12 @@ const MatchResult FuturesEngine::match_gtc(Order &order, OrderBook &orderbook)
     }
     catch (const std::out_of_range &e)
     {
-        // std::cerr << e.what() << " Price: " << best_price << std::endl;
     }
 
     return gen_match_result(og_standing_quantity, order, best_price);
 }
 
-void FuturesEngine::handle_filled_orders(std::vector<std::pair<std::shared_ptr<Order> &, int>> &orders, OrderBook &orderbook, const float price)
+void FuturesEngine::handle_filled_orders(std::vector<std::pair<std::shared_ptr<Order> &, int>> &orders, OrderBook &orderbook, const float price) noexcept
 {
     for (auto &pair : orders)
     {
@@ -308,7 +307,7 @@ void FuturesEngine::handle_filled_orders(std::vector<std::pair<std::shared_ptr<O
     }
 }
 
-void FuturesEngine::handle_touched_orders(std::vector<std::pair<std::shared_ptr<Order> &, int>> &orders, OrderBook &orderbook, const float price)
+void FuturesEngine::handle_touched_orders(std::vector<std::pair<std::shared_ptr<Order> &, int>> &orders, OrderBook &orderbook, const float price) noexcept
 {
     for (auto &pair : orders)
     {
@@ -335,7 +334,7 @@ void FuturesEngine::handle_touched_orders(std::vector<std::pair<std::shared_ptr<
     }
 }
 
-void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook)
+void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook) noexcept
 {
     Position &pos = orderbook.get_position(order.m_payload->m_id);
 
@@ -355,7 +354,7 @@ void FuturesEngine::place_tp_sl(Order &order, OrderBook &orderbook)
     }
 }
 
-const MatchResult FuturesEngine::gen_match_result(const float og_standing_quantity, Order &order, const float price)
+const MatchResult FuturesEngine::gen_match_result(const float og_standing_quantity, Order &order, const float price) noexcept
 {
     MatchResult result;
 
@@ -376,7 +375,7 @@ const MatchResult FuturesEngine::gen_match_result(const float og_standing_quanti
     return result;
 }
 
-void FuturesEngine::modify_entry(ModifyOrderPayload &payload, Position &position, OrderBook &orderbook)
+void FuturesEngine::modify_entry(const ModifyOrderPayload &payload, Position &position, OrderBook &orderbook)
 {
     if (position.m_entry_order->m_payload->m_status != Status::PENDING)
         return;
@@ -385,7 +384,7 @@ void FuturesEngine::modify_entry(ModifyOrderPayload &payload, Position &position
     position.m_entry_order = std::make_shared<Order>(Tag::ENTRY, position.m_entry_order->m_payload);
 }
 
-void FuturesEngine::modify_stop_loss(ModifyOrderPayload &payload, Position &position, OrderBook &orderbook) noexcept
+void FuturesEngine::modify_stop_loss(const ModifyOrderPayload &payload, Position &position, OrderBook &orderbook) noexcept
 {
     std::shared_ptr<OrderPayload> &order_payload = position.m_entry_order->m_payload;
 
@@ -413,7 +412,7 @@ void FuturesEngine::modify_stop_loss(ModifyOrderPayload &payload, Position &posi
     }
 }
 
-void FuturesEngine::modify_take_profit(ModifyOrderPayload &payload, Position &position, OrderBook &orderbook)
+void FuturesEngine::modify_take_profit(const ModifyOrderPayload &payload, Position &position, OrderBook &orderbook)
 {
     std::shared_ptr<OrderPayload> &order_payload = position.m_entry_order->m_payload;
 

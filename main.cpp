@@ -42,7 +42,7 @@ void push_engine(Queue &queue)
                             std::make_unique<OrderPayload>(
                                 i,
                                 "APPL",
-                                ExecutionType::GTC,
+                                ExecutionType::FOK,
                                 OrderType::MARKET,
                                 sides[std::rand() % 2],
                                 std::rand() % 30 + 1,

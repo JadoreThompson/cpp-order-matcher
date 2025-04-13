@@ -1,6 +1,6 @@
 #include "queue.h"
 
-void Queue::push(QueuePayload &&payload)
+void Queue::push(QueuePayload &&payload) noexcept
 {
     {
         std::lock_guard<std::mutex> lock(this->m_mutex);

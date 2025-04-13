@@ -15,7 +15,7 @@ private:
     std::mutex m_mutex;
 
 public:
-    void push(QueuePayload &&payload);
+    void push(QueuePayload &&payload) noexcept;
 
     QueuePayload get() noexcept;
 };

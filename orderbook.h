@@ -29,11 +29,11 @@ public:
 
     std::map<float, std::list<std::shared_ptr<Order>>> &get_book(const Order &order);
 
-    Position &declare(std::shared_ptr<OrderPayload> payload);
+    Position &declare(std::shared_ptr<OrderPayload> payload) noexcept;
 
     void track(std::shared_ptr<Order> order);
 
-    void rtrack(std::shared_ptr<Order> &order);
+    void rtrack(std::shared_ptr<Order> &order) noexcept;
 
     Position &get_position(const int id);
 
@@ -43,21 +43,21 @@ public:
 
     const float get_best_price(Side side) noexcept;
 
-    void push_order(std::shared_ptr<Order> &order);
+    void push_order(std::shared_ptr<Order> &order) noexcept;
 
-    void remove_from_level(std::shared_ptr<Order> &order);
+    void remove_from_level(std::shared_ptr<Order> &order) noexcept;
 
     std::pair<int, int> size() noexcept;
 
-    void print_size(const std::map<float, std::list<std::shared_ptr<Order>>> &bids);
+    void print_size(const std::map<float, const std::list<std::shared_ptr<Order>>> &bids) noexcept;
 
-    std::map<float, std::list<std::shared_ptr<Order>>> m_bids;
-    std::map<float, std::list<std::shared_ptr<Order>>> m_asks;
-    std::map<int, Position> m_tracker;
 
 private:
     void update_trailing_stop_loss_orders(float price) noexcept;
 
+    std::map<float, std::list<std::shared_ptr<Order>>> m_bids;
+    std::map<float, std::list<std::shared_ptr<Order>>> m_asks;
+    std::map<int, Position> m_tracker;
     std::unordered_set<std::shared_ptr<Order>> m_trailing_stop_loss_orders;
     float m_last_price;
     float m_price;

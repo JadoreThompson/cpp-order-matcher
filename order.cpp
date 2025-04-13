@@ -68,7 +68,7 @@ OrderPayload::OrderPayload(
     this->m_take_profit_price = take_profit_price;
 };
 
-std::string OrderPayload::to_string()
+std::string OrderPayload::to_string() noexcept
 {
     std::ostringstream oss;
     oss << "OrderPayload("
@@ -115,9 +115,6 @@ std::string OrderPayload::to_string()
 
 //     return this->m_filled_price;
 // }
-
-CancelOrderPayload::CancelOrderPayload(const int id, const std::string instrument)
-    : BasePayload(std::move(id), std::move(instrument)) {};
 
 ModifyOrderPayload::ModifyOrderPayload(
     const int id,
@@ -168,7 +165,7 @@ QueuePayload::~QueuePayload()
 Order::Order(const Tag tag, std::shared_ptr<OrderPayload> payload)
     : m_tag(tag), m_payload(payload) {};
 
-std::string Order::to_string()
+std::string Order::to_string() noexcept
 {
     std::ostringstream oss;
     oss << "Order("

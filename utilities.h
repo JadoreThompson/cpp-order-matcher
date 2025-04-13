@@ -5,9 +5,9 @@
 #include "order.h"
 #include "orderbook.h"
 
-float calc_sell_pl(const float amount, const float open_price, const float close_price);
+float calc_sell_pl(const float amount, const float open_price, const float close_price) noexcept;
 
-float calc_buy_pl(const float amount, const float open_price, const float close_price);
+float calc_buy_pl(const float amount, const float open_price, const float close_price) noexcept;
 
 /*
  * Helper function to close position based on matching price
