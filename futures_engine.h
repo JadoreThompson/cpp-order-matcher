@@ -1,6 +1,7 @@
 #ifndef _FUTURES_ENGINE_
 #define _FUTURES_ENGINE_
 
+#include <functional>
 #include <tuple>
 #include "order.h"
 #include "orderbook.h"
@@ -25,14 +26,13 @@ public:
                 int price = -1);
 
     MatchResult();
-
-    // private:
-    //     bool m_result_set;
 };
 
 class FuturesEngine
 {
 public:
+    FuturesEngine();
+
     void start(Queue &queue) noexcept;
 
     void handle_new_order(std::unique_ptr<BasePayload> message_payload) noexcept;
@@ -43,11 +43,13 @@ public:
 
     void handle_close_order(std::unique_ptr<BasePayload> message_payload) noexcept;
 
-    void place_fok_market_order(std::shared_ptr<OrderPayload> &&payloadp) noexcept;
+    void place_fok_order(std::shared_ptr<OrderPayload> &&payloadp) noexcept;
 
     void place_gtc_market_order(std::shared_ptr<OrderPayload> payloadp) noexcept;
 
-    void place_limit_order(std::shared_ptr<OrderPayload> &&payloadp) noexcept;
+    void place_ioc_order(std::shared_ptr<OrderPayload> payloadp) noexcept;
+
+    void place_limit_order(std::shared_ptr<OrderPayload> payloadp) noexcept;
 
     void cancel_order(const std::unique_ptr<BasePayload> payload);
 
@@ -68,12 +70,16 @@ public:
 private:
     const MatchResult gen_match_result(const float og_standing_quantity, Order &order, const float price) noexcept;
 
+    void handle_successfull_match(Order &order, OrderBook &orderbook, float price, bool reset_standing_quantity = true);
+
     void modify_entry(const ModifyOrderPayload &payload, Position &position, OrderBook &orderbook);
 
     void modify_stop_loss(const ModifyOrderPayload &payload, Position &position, OrderBook &orderbook) noexcept;
 
     void modify_take_profit(const ModifyOrderPayload &payload, Position &position, OrderBook &orderbook);
 
-    std::map<const std::string, OrderBook> orderbooks;
+    std::map<const std::string, OrderBook> m_orderbooks;
+
+    const std::map<QueuePayload::Category, std::function<void(std::unique_ptr<BasePayload>)>> m_handlers;
 };
 #endif

@@ -51,11 +51,7 @@ void OrderBook::track(std::shared_ptr<Order> order)
     }
 }
 
-/*
- * Calling this will invalidate the pointers
- * within the bids, asks. Ensure you remove
- * the order from the level before calling this.
- */
+// Pass an order with Tag::ENTRY to collapse the position
 void OrderBook::rtrack(std::shared_ptr<Order> &order) noexcept
 {
     Position &position = this->m_tracker.at(order->m_payload->m_id);
@@ -85,7 +81,7 @@ void OrderBook::rtrack(std::shared_ptr<Order> &order) noexcept
             }
         }
 
-        if (order->m_payload->m_status == Status::PENDING)
+        if (order->m_payload->m_status == OrderStatus::PENDING)
         {
             remove_from_level(order);
         }
@@ -200,7 +196,7 @@ void OrderBook::remove_from_level(std::shared_ptr<Order> &order) noexcept
 
     book[price].remove(order);
     if (!book[price].size())
-        book.erase(price); // Custom implementation?
+        book.erase(price);
 }
 
 std::pair<int, int> OrderBook::size() noexcept

@@ -13,7 +13,8 @@ enum ExecutionType
 enum OrderType
 {
     MARKET,
-    LIMIT
+    LIMIT,
+    STOP
 };
 
 enum Side
@@ -22,7 +23,7 @@ enum Side
     ASK
 };
 
-enum Status
+enum OrderStatus
 {
     PENDING,
     PARTIALLY_FILLED,
@@ -55,7 +56,6 @@ struct StopLossOrder
     StopLossOrder(float price = -1.0f, float distance = -1.0f);
 };
 
-// class OrderPayload : public BasePayload
 struct OrderPayload : public BasePayload
 {
     const ExecutionType m_exec_type;
@@ -64,7 +64,7 @@ struct OrderPayload : public BasePayload
     const int m_quantity;
     float m_entry_price;
 
-    Status m_status;
+    OrderStatus m_status;
     float m_filled_price = -1.0f;
     float m_closed_price;
     float m_take_profit_price;
@@ -83,14 +83,6 @@ struct OrderPayload : public BasePayload
         float entry_price,
         StopLossOrder stop_loss_details = {},
         float take_profit_price = -1.0f);
-
-    // void set_status(Status status);
-
-    // Status &get_status();
-
-    // void set_filled_price(float price);
-
-    // float get_filled_price();
 
     std::string to_string() noexcept;
 };

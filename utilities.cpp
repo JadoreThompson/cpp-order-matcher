@@ -38,8 +38,7 @@ void calc_upl(OrderPayload &payload, const float standing_quantity, const float 
     {
         if (new_upl <= -pos_value)
         {
-            // payload.set_status(Status::CLOSED);
-            payload.m_status = Status::CLOSED;
+            payload.m_status = OrderStatus::CLOSED;
             payload.m_closed_price = price;
             payload.m_standing_quantity = payload.m_unrealised_pnl = 0;
             payload.m_realised_pnl += new_upl;

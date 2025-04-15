@@ -81,41 +81,6 @@ std::string OrderPayload::to_string() noexcept
     return oss.str();
 }
 
-// void OrderPayload::set_status(Status status)
-// {
-//     if (this->m_status == CLOSED)
-//     {
-//         throw std::string("Cannot set status on payload with status CLOSED");
-//     }
-//     this->m_status = status;
-// }
-
-// Status &OrderPayload::get_status()
-// {
-//     return this->m_status;
-// }
-
-// void OrderPayload::set_filled_price(float price)
-// {
-//     if (this->m_filled_price_set)
-//     {
-//         throw std::string("Cannot set filled price on payload once already set");
-//     }
-
-//     this->m_filled_price = price;
-//     this->m_filled_price_set = true;
-// }
-
-// float OrderPayload::get_filled_price()
-// {
-//     if (!this->m_filled_price_set)
-//     {
-//         throw std::string("Filled price not set");
-//     }
-
-//     return this->m_filled_price;
-// }
-
 ModifyOrderPayload::ModifyOrderPayload(
     const int id,
     const std::string instrument,
