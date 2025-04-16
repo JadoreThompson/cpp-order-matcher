@@ -1,15 +1,36 @@
 #include <thread>
 #include <memory>
-#include "futures_engine.h"
-#include "orderbook.h"
-#include "order.h"
-#include "queue.h"
+#include "crow.h"
+#include "api/utils.h"
+#include "engine/futures_engine.h"
+#include "engine/orderbook.h"
+#include "engine/order.h"
+#include "engine/queue.h"
+
+void init_engine();
 
 void handle_engine(FuturesEngine &engine, Queue &queue);
 
 void push_engine(Queue &queue);
 
 int main()
+{
+    crow::SimpleApp app;
+    CROW_ROUTE(app, "/").methods(crow::HTTPMethod::POST)([](const crow::request &req)
+                                                         { 
+            crow::json::rvalue body = crow::json::load(req.body);
+            
+            try {
+                validate_order(body);
+            } catch(const std::invalid_argument& e) {
+                return crow::response(400, e.what());
+            }
+            return crow::response(200); });
+    app.port(8000).run();
+    return 0;
+}
+
+void init_engine()
 {
     Queue queue;
     FuturesEngine engine;
@@ -19,7 +40,6 @@ int main()
 
     pusher.join();
     engine_thread.join();
-    return 0;
 }
 
 void handle_engine(FuturesEngine &engine, Queue &queue)
