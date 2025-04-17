@@ -7,7 +7,7 @@
 #include "engine/order.h"
 #include "engine/queue.h"
 
-void init_engine();
+void init_engine(Queue &queue);
 
 void handle_engine(FuturesEngine &engine, Queue &queue);
 
@@ -15,32 +15,35 @@ void push_engine(Queue &queue);
 
 int main()
 {
+    Queue queue;
     crow::SimpleApp app;
-    CROW_ROUTE(app, "/order/").methods(crow::HTTPMethod::POST)([](const crow::request &req)
-                                                         { 
-            const crow::json::rvalue body = crow::json::load(req.body);
 
+    CROW_ROUTE(app, "/order/").methods(crow::HTTPMethod::POST)([&queue](const crow::request &req)
+                                                               { 
             try {
-                OrderPayload order_payload = validate_order(body);
-                std::cout << "Created payload " << order_payload.m_order_type << std::endl;
+                OrderPayload order_payload = validate_order(crow::json::load(req.body));
+                queue.push(QueuePayload(
+                        QueuePayload::Category::NEW, 
+                        std::make_unique<OrderPayload>(order_payload)));
             } catch(const std::invalid_argument& e) {
                 return crow::response(400, e.what());
             }
             return crow::response(200); });
 
+    std::thread engine_initialiser(init_engine, std::ref(queue));
+
     app.port(8000).run();
+    // engine_initialiser.join();
     return 0;
 }
 
-void init_engine()
+void init_engine(Queue &queue)
 {
-    Queue queue;
     FuturesEngine engine;
 
     std::thread engine_thread(handle_engine, std::ref(engine), std::ref(queue));
-    std::thread pusher(push_engine, std::ref(queue));
-
-    pusher.join();
+    // std::thread pusher(push_engine, std::ref(queue));
+    // pusher.join();
     engine_thread.join();
 }
 

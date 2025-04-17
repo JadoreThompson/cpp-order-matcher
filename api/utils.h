@@ -12,6 +12,8 @@
 #include "crow.h"
 #include "engine/order.h"
 
+int id = 0;
+
 template <typename T>
 class Set
 {
@@ -121,7 +123,7 @@ OrderPayload validate_order(const crow::json::rvalue &json)
     }
 
     return OrderPayload(
-        1,
+        id++,
         static_cast<std::string>(json["instrument"].s()),
         ExecutionType(ENUM_STRINGS.at("exec_type").index(json["exec_type"].s())),
         OrderType(ENUM_STRINGS.at("order_type").index(json["order_type"].s())),
