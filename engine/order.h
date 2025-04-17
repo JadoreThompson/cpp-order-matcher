@@ -6,21 +6,22 @@
 
 enum ExecutionType
 {
-    FOK,
-    GTC,
+    FOK = 0,
+    GTC = 1,
+    IOC = 2
 };
 
 enum OrderType
 {
-    MARKET,
-    LIMIT,
-    STOP
+    MARKET = 0,
+    LIMIT = 1,
+    STOP = 2
 };
 
 enum Side
 {
-    BID,
-    ASK
+    BID = 0,
+    ASK = 1
 };
 
 enum OrderStatus

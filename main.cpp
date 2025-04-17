@@ -16,16 +16,18 @@ void push_engine(Queue &queue);
 int main()
 {
     crow::SimpleApp app;
-    CROW_ROUTE(app, "/").methods(crow::HTTPMethod::POST)([](const crow::request &req)
+    CROW_ROUTE(app, "/order/").methods(crow::HTTPMethod::POST)([](const crow::request &req)
                                                          { 
-            crow::json::rvalue body = crow::json::load(req.body);
-            
+            const crow::json::rvalue body = crow::json::load(req.body);
+
             try {
-                validate_order(body);
+                OrderPayload order_payload = validate_order(body);
+                std::cout << "Created payload " << order_payload.m_order_type << std::endl;
             } catch(const std::invalid_argument& e) {
                 return crow::response(400, e.what());
             }
             return crow::response(200); });
+
     app.port(8000).run();
     return 0;
 }
@@ -57,7 +59,6 @@ void push_engine(Queue &queue)
     {
         try
         {
-
             QueuePayload qp{QueuePayload::Category::NEW,
                             std::make_unique<OrderPayload>(
                                 i,
