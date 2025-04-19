@@ -7,7 +7,7 @@
 #include "engine/orderbook.h"
 #include "engine/queue.h"
 
-constexpr int LOOPS = 10;
+constexpr int LOOPS = 1e6;
 
 struct MatchResult
 {

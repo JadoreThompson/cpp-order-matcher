@@ -28,33 +28,33 @@ public:
 
     OrderBook(const std::string instrument, const float price);
 
-    std::map<float, std::list<std::shared_ptr<Order>>> &get_book(const Order &order);
+    std::map<float, std::list<std::shared_ptr<Order>>> &get_book(const Order &order) const noexcept;
 
-    Position &declare(std::shared_ptr<OrderPayload> payload) noexcept;
+    Position &declare(const std::shared_ptr<OrderPayload> payload) noexcept;
 
-    void track(std::shared_ptr<Order> order);
+    void track(std::shared_ptr<Order> order) const;
 
     void rtrack(std::shared_ptr<Order> &order) noexcept;
 
-    Position &get_position(const int id);
+    Position &get_position(const int id) const noexcept;
 
-    const float get_price() noexcept;
+    const float get_price() const noexcept;
 
-    void set_price(float price);
+    void set_price(const float price);
 
-    const float get_best_price(Side side) noexcept;
+    const float get_best_price(Side side) const noexcept;
 
-    void push_order(std::shared_ptr<Order> &order) noexcept;
+    void push_order(const std::shared_ptr<Order> &order) noexcept;
 
-    void remove_from_level(std::shared_ptr<Order> &order) noexcept;
+    void remove_from_level(const std::shared_ptr<Order> &order) noexcept;
 
-    std::pair<int, int> size() noexcept;
+    const std::pair<int, int> size() const noexcept;
 
-    void print_size(const std::map<float, const std::list<std::shared_ptr<Order>>> &bids) noexcept;
+    void print_size(const std::map<float, const std::list<std::shared_ptr<Order>>> &bids) const noexcept;
 
 
 private:
-    void update_trailing_stop_loss_orders(float price) noexcept;
+    void update_trailing_stop_loss_orders(const float price) noexcept;
 
     std::map<float, std::list<std::shared_ptr<Order>>> m_bids;
     std::map<float, std::list<std::shared_ptr<Order>>> m_asks;

@@ -47,7 +47,7 @@ struct BasePayload
 
     BasePayload(const int id, const std::string instrument);
 
-    virtual ~BasePayload() {};
+    virtual ~BasePayload() noexcept {};
 };
 
 struct StopLossOrder
@@ -66,7 +66,7 @@ struct OrderPayload : public BasePayload
     float m_entry_price;
 
     OrderStatus m_status;
-    float m_filled_price = -1.0f;
+    float m_filled_price{-1.0f};
     float m_closed_price;
     float m_take_profit_price;
     float m_realised_pnl;
@@ -85,28 +85,27 @@ struct OrderPayload : public BasePayload
         StopLossOrder stop_loss_details = {},
         float take_profit_price = -1.0f);
 
-    std::string to_string() noexcept;
+    std::string to_string() const noexcept;
 };
 
 struct ModifyOrderPayload : public BasePayload
 {
-public:
-    const float m_stop_loss_price;
-    const float m_stop_loss_distance;
-    const float m_take_profit_price;
-    const float m_entry_price; // New desired limit price
+    const float m_stop_loss_price{-1.0f};
+    const float m_stop_loss_distance{-1.0f};
+    const float m_take_profit_price{-1.0f};
+    const float m_limit_price{-1.0f};
+
     ModifyOrderPayload(
         const int id,
         const std::string instrument,
         const float m_stop_loss_distance = -1.0f,
         const float stop_loss_price = -1.0f,
         const float take_profit_price = -1.0f,
-        const float entry_price = -1.0f);
+        const float limit_price = -1.0f);
 };
 
 struct QueuePayload
 {
-public:
     enum Category
     {
         NEW,
@@ -125,29 +124,28 @@ public:
 
     QueuePayload &operator=(const QueuePayload &&other);
 
+    QueuePayload(QueuePayload &other) = delete;
+
+    QueuePayload &operator=(const QueuePayload &other) = delete;
+
     ~QueuePayload();
-
-private:
-    QueuePayload(QueuePayload &other);
-
-    QueuePayload &operator=(const QueuePayload &other);
 };
 
 struct Order
 {
-public:
     const Tag m_tag;
     std::shared_ptr<OrderPayload> m_payload;
+
     Order(const Tag m_tag, std::shared_ptr<OrderPayload> payload);
-    std::string to_string() noexcept;
+
+    std::string to_string() const noexcept;
 };
 
 struct Position
 {
-public:
     std::shared_ptr<Order> m_entry_order;
-    std::shared_ptr<Order> m_stop_loss_order = nullptr;
-    std::shared_ptr<Order> m_take_profit_order = nullptr;
+    std::shared_ptr<Order> m_stop_loss_order{nullptr};
+    std::shared_ptr<Order> m_take_profit_order{nullptr};
 
     Position(std::shared_ptr<Order> entry_order);
 };

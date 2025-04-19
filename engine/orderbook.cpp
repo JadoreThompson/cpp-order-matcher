@@ -15,14 +15,14 @@ OrderBook::OrderBook(const std::string instrument, const float price)
     : m_instrument(instrument), m_price(price), m_last_price(price) {};
 
 // Returns the book that the order should be matched against.
-std::map<float, std::list<std::shared_ptr<Order>>> &OrderBook::get_book(const Order &order)
+std::map<float, std::list<std::shared_ptr<Order>>> &OrderBook::get_book(const Order &order) const noexcept
 {
     if (order.m_tag == Tag::ENTRY)
     {
-        return (order.m_payload->m_side == Side::ASK) ? this->m_bids : this->m_asks;
+        return const_cast<std::map<float, std::list<std::shared_ptr<Order>>> &>((order.m_payload->m_side == Side::ASK) ? this->m_bids : this->m_asks);
     }
 
-    return (order.m_payload->m_side == Side::ASK) ? this->m_bids : this->m_asks;
+    return const_cast<std::map<float, std::list<std::shared_ptr<Order>>> &>((order.m_payload->m_side == Side::ASK) ? this->m_bids : this->m_asks);
 }
 
 // Specifically used for ENTRY orders.
@@ -32,9 +32,9 @@ Position &OrderBook::declare(std::shared_ptr<OrderPayload> payload) noexcept
 }
 
 // Used for STOP_LOSS and TAKE_PROFIT orders.
-void OrderBook::track(std::shared_ptr<Order> order)
+void OrderBook::track(std::shared_ptr<Order> order) const
 {
-    Position &position = this->m_tracker.at(order->m_payload->m_id);
+    Position &position = const_cast<Position &>(this->m_tracker.at(order->m_payload->m_id));
 
     if (order->m_tag == Tag::ENTRY)
     {
@@ -90,14 +90,14 @@ void OrderBook::rtrack(std::shared_ptr<Order> &order) noexcept
     }
 }
 
-Position &OrderBook::get_position(const int id)
+Position &OrderBook::get_position(const int id) const noexcept
 {
-    return this->m_tracker.at(id);
+    return const_cast<Position &>(this->m_tracker.at(id));
 }
 
-const float OrderBook::get_price() noexcept { return this->m_price; }
+const float OrderBook::get_price() const noexcept { return this->m_price; }
 
-void OrderBook::set_price(float price)
+void OrderBook::set_price(const float price)
 {
     if (price < 0.0f)
         throw std::invalid_argument("Cannot set price below 0.");
@@ -107,26 +107,23 @@ void OrderBook::set_price(float price)
     this->m_last_price = price;
 }
 
-const float OrderBook::get_best_price(Side side) noexcept
+const float OrderBook::get_best_price(Side side) const noexcept
 {
     float price;
-    std::map<float, std::list<std::shared_ptr<Order>>> book;
 
     if (side == Side::ASK)
     {
         price = (this->m_asks.empty()) ? this->m_price : this->m_asks.begin()->first;
-        book = this->m_asks;
     }
     else
     {
         price = (this->m_bids.empty()) ? this->m_price : this->m_bids.rbegin()->first;
-        book = this->m_bids;
     }
 
     return price;
 }
 
-void OrderBook::push_order(std::shared_ptr<Order> &order) noexcept
+void OrderBook::push_order(const std::shared_ptr<Order> &order) noexcept
 {
     auto &book = get_book(*order);
     float price;
@@ -160,7 +157,7 @@ void OrderBook::push_order(std::shared_ptr<Order> &order) noexcept
     book[price].push_back(order);
 }
 
-void OrderBook::remove_from_level(std::shared_ptr<Order> &order) noexcept
+void OrderBook::remove_from_level(const std::shared_ptr<Order> &order) noexcept
 {
     OrderPayload &payload = *order->m_payload;
     auto &book = get_book(*order);
@@ -172,7 +169,6 @@ void OrderBook::remove_from_level(std::shared_ptr<Order> &order) noexcept
     }
     else
     {
-
         if (order->m_tag == Tag::TAKE_PROFIT)
         {
             price = payload.m_take_profit_price;
@@ -199,12 +195,12 @@ void OrderBook::remove_from_level(std::shared_ptr<Order> &order) noexcept
         book.erase(price);
 }
 
-std::pair<int, int> OrderBook::size() noexcept
+const std::pair<int, int> OrderBook::size() const noexcept
 {
     return std::pair<int, int>{this->m_bids.size(), this->m_asks.size()};
 }
 
-void OrderBook::print_size(const std::map<float, const std::list<std::shared_ptr<Order>>> &bids) noexcept
+void OrderBook::print_size(const std::map<float, const std::list<std::shared_ptr<Order>>> &bids) const noexcept
 {
     std::cout << std::left << std::setw(10) << "Price" << " | " << "List Size\n";
     std::cout << "--------------------------\n";
@@ -220,7 +216,7 @@ void OrderBook::print_size(const std::map<float, const std::list<std::shared_ptr
     std::cout << "Total Orders: " << totalSize << "\n";
 }
 
-void OrderBook::update_trailing_stop_loss_orders(float price) noexcept
+void OrderBook::update_trailing_stop_loss_orders(const float price) noexcept
 {
     for (auto it = this->m_trailing_stop_loss_orders.begin(); it != this->m_trailing_stop_loss_orders.end(); ++it)
     {

@@ -68,7 +68,7 @@ OrderPayload::OrderPayload(
     this->m_take_profit_price = take_profit_price;
 };
 
-std::string OrderPayload::to_string() noexcept
+std::string OrderPayload::to_string() const noexcept
 {
     std::ostringstream oss;
     oss << "OrderPayload("
@@ -87,12 +87,12 @@ ModifyOrderPayload::ModifyOrderPayload(
     const float stop_loss_distance,
     const float stop_loss_price,
     const float take_profit_price,
-    const float entry_price)
+    const float limit_price)
     : BasePayload(id, instrument),
       m_stop_loss_distance(stop_loss_distance),
       m_stop_loss_price(stop_loss_price),
       m_take_profit_price(take_profit_price),
-      m_entry_price(entry_price)
+      m_limit_price(limit_price)
 {
     if (stop_loss_distance != -1.0f && stop_loss_price != -1.0f)
         throw std::invalid_argument("Must choose between distance or price.");
@@ -106,9 +106,6 @@ QueuePayload::QueuePayload(QueuePayload &&other)
 
       };
 
-QueuePayload::QueuePayload(QueuePayload &other)
-    : m_category(other.m_category), m_payload(std::move(other.m_payload)) {};
-
 QueuePayload &QueuePayload::operator=(const QueuePayload &&other)
 {
     this->m_category = other.m_category;
@@ -116,21 +113,12 @@ QueuePayload &QueuePayload::operator=(const QueuePayload &&other)
     return *this;
 }
 
-QueuePayload &QueuePayload::operator=(const QueuePayload &other)
-{
-    this->m_category = other.m_category;
-    this->m_payload = std::make_unique<BasePayload>(*other.m_payload);
-    return *this;
-}
-
-QueuePayload::~QueuePayload()
-{
-}
+QueuePayload::~QueuePayload() {}
 
 Order::Order(const Tag tag, std::shared_ptr<OrderPayload> payload)
     : m_tag(tag), m_payload(payload) {};
 
-std::string Order::to_string() noexcept
+std::string Order::to_string() const noexcept
 {
     std::ostringstream oss;
     oss << "Order("
