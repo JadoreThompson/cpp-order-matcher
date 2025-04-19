@@ -98,22 +98,22 @@ ModifyOrderPayload::ModifyOrderPayload(
         throw std::invalid_argument("Must choose between distance or price.");
 };
 
-QueuePayload::QueuePayload(const Category category, std::unique_ptr<BasePayload> &&payloadp)
+QueuePayload::QueuePayload(const Category category, std::unique_ptr<BasePayload> &&payloadp) noexcept
     : m_category(category), m_payload(std::move(payloadp)) {};
 
-QueuePayload::QueuePayload(QueuePayload &&other)
+QueuePayload::QueuePayload(QueuePayload &&other) noexcept
     : m_category(other.m_category), m_payload(std::move(other.m_payload)) {
 
       };
 
-QueuePayload &QueuePayload::operator=(const QueuePayload &&other)
+QueuePayload &QueuePayload::operator=(QueuePayload &&other) noexcept
 {
     this->m_category = other.m_category;
-    this->m_payload = std::make_unique<BasePayload>(*other.m_payload);
+    this->m_payload = std::move(other.m_payload);
     return *this;
 }
 
-QueuePayload::~QueuePayload() {}
+QueuePayload::~QueuePayload() noexcept {}
 
 Order::Order(const Tag tag, std::shared_ptr<OrderPayload> payload)
     : m_tag(tag), m_payload(payload) {};

@@ -118,17 +118,17 @@ struct QueuePayload
     Category m_category;
     std::unique_ptr<BasePayload> m_payload;
 
-    QueuePayload(const Category category, std::unique_ptr<BasePayload> &&payloadp);
+    QueuePayload(const Category category, std::unique_ptr<BasePayload> &&payloadp) noexcept;
 
-    QueuePayload(QueuePayload &&other);
+    QueuePayload(QueuePayload &&other) noexcept;
 
-    QueuePayload &operator=(const QueuePayload &&other);
+    QueuePayload &operator=(QueuePayload &&other) noexcept;
 
     QueuePayload(QueuePayload &other) = delete;
 
     QueuePayload &operator=(const QueuePayload &other) = delete;
 
-    ~QueuePayload();
+    ~QueuePayload() noexcept;
 };
 
 struct Order
